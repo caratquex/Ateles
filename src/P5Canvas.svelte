@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import p5 from 'p5';
-  import { shakeIntensity, appState, hasShaken, visualPhase } from './store.js';
+  import { shakeIntensity, appState, visualPhase } from './store.js';
 
   let canvasContainer;
   let p5Instance;
@@ -15,231 +15,162 @@
     const sketch = (p) => {
       let currentShake = 0;
       let targetShake = 0;
-      let angle = 0;
-      let breakProgress = 0; // 0 to 1
       
-      let shatterShards = [];
+      let shards = [];
+      const NUM_GROUPS = 5;
+      const SHARDS_PER_GROUP = 16;
+      const TOTAL_SHARDS = NUM_GROUPS * SHARDS_PER_GROUP;
 
-      let currentVariation = 0;
-      let variations = [
-        // 0: Classic 8-slice petal & diamond
-        (r) => {
-          let slices = 8;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.ellipse(0, r * 0.8, r * 0.4, r * 1.2);
-            p.fill('#000000'); p.ellipse(0, r * 0.9, r * 0.15, r * 0.6);
-            p.push(); p.rotate(p.TWO_PI / (slices * 2));
-            p.fill('#e0e0e0'); p.quad(0, r * 0.45, r * 0.15, r * 0.7, 0, r * 0.95, -r * 0.15, r * 0.7);
-            p.fill('#000000'); p.circle(0, r * 1.05, r * 0.1);
-            p.pop(); p.pop();
-          }
-          p.fill('#e0e0e0'); p.circle(0, 0, r * 0.5);
-          p.fill('#000000'); p.circle(0, 0, r * 0.15);
-        },
-        // 1: 12-slice sharp diamonds
-        (r) => {
-          let slices = 12;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.quad(0, r * 0.3, r * 0.2, r * 0.8, 0, r * 1.3, -r * 0.2, r * 0.8);
-            p.fill('#000000'); p.quad(0, r * 0.4, r * 0.1, r * 0.8, 0, r * 1.1, -r * 0.1, r * 0.8);
-            p.pop();
-          }
-          p.fill('#000000'); p.circle(0, 0, r * 0.5);
-          p.fill('#e0e0e0'); p.circle(0, 0, r * 0.2);
-        },
-        // 2: 6-slice large alternating circles
-        (r) => {
-          let slices = 6;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.circle(0, r * 0.8, r * 0.7);
-            p.fill('#000000'); p.circle(0, r * 0.8, r * 0.3);
-            p.push(); p.rotate(p.TWO_PI / (slices * 2));
-            p.fill('#e0e0e0'); p.ellipse(0, r * 0.5, r * 0.2, r * 0.8);
-            p.pop(); p.pop();
-          }
-          p.fill('#000000'); p.circle(0, 0, r * 0.3);
-        },
-        // 3: 4-slice retro blocks
-        (r) => {
-          let slices = 4;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.rect(0, r * 0.7, r * 0.6, r * 1.2);
-            p.fill('#000000'); p.rect(0, r * 0.7, r * 0.2, r * 0.8);
-            p.push(); p.rotate(p.TWO_PI / (slices * 2));
-            p.fill('#e0e0e0'); p.circle(0, r * 0.8, r * 0.4);
-            p.fill('#000000'); p.circle(0, r * 0.8, r * 0.15);
-            p.pop(); p.pop();
-          }
-          p.fill('#000000'); p.rect(0, 0, r * 0.4, r * 0.4);
-        },
-        // 4: 10-slice dotted trail
-        (r) => {
-          let slices = 10;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.ellipse(0, r * 0.6, r * 0.2, r * 0.8);
-            p.fill('#000000'); 
-            p.circle(0, r * 1.1, r * 0.15);
-            p.circle(0, r * 1.3, r * 0.1);
-            p.circle(0, r * 1.45, r * 0.05);
-            p.pop();
-          }
-          p.fill('#e0e0e0'); p.circle(0, 0, r * 0.4);
-        },
-        // 5: 8-slice overlapping shapes
-        (r) => {
-          let slices = 8;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0');
-            p.arc(-r*0.15, r*0.8, r*0.3, r*0.3, p.PI, p.TWO_PI);
-            p.arc(r*0.15, r*0.8, r*0.3, r*0.3, p.PI, p.TWO_PI);
-            p.triangle(-r*0.3, r*0.8, r*0.3, r*0.8, 0, r*1.2);
-            p.fill('#000000'); p.ellipse(0, r*0.9, r*0.15, r*0.3);
-            p.push(); p.rotate(p.TWO_PI / (slices * 2));
-            p.fill('#e0e0e0'); p.circle(0, r*0.5, r*0.15);
-            p.pop(); p.pop();
-          }
-          p.fill('#000000'); p.circle(0, 0, r * 0.2);
-        },
-        // 6: 16-slice sunburst
-        (r) => {
-          let slices = 16;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.triangle(-r*0.08, r*0.3, r*0.08, r*0.3, 0, r*1.4);
-            p.fill('#000000'); p.circle(0, r*0.7, r*0.08);
-            p.pop();
-          }
-          p.fill('#000000'); p.circle(0, 0, r * 0.4);
-          p.fill('#e0e0e0'); p.circle(0, 0, r * 0.2);
-        },
-        // 7: 6-slice star
-        (r) => {
-          let slices = 6;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); 
-            p.beginShape();
-            p.vertex(0, r*0.3); p.vertex(r*0.3, r*0.6); p.vertex(r*0.2, r*1.1);
-            p.vertex(-r*0.2, r*1.1); p.vertex(-r*0.3, r*0.6);
-            p.endShape(p.CLOSE);
-            p.fill('#000000'); 
-            p.circle(0, r*0.7, r*0.2);
-            p.pop();
-          }
-          p.fill('#e0e0e0'); p.circle(0, 0, r*0.5);
-          p.fill('#000000'); p.circle(0, 0, r*0.1);
-        },
-        // 8: 8-slice target pills
-        (r) => {
-          let slices = 8;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.rect(0, r*0.8, r*0.3, r*0.9, r*0.15);
-            p.fill('#000000'); p.circle(0, r*0.5, r*0.2);
-            p.circle(0, r*1.1, r*0.2);
-            p.push(); p.rotate(p.TWO_PI / (slices * 2));
-            p.fill('#e0e0e0'); p.rect(0, r*0.5, r*0.1, r*0.6, r*0.05);
-            p.pop(); p.pop();
-          }
-          p.fill('#000000'); p.circle(0, 0, r*0.4);
-        },
-        // 9: 12-slice delicate lines and dots
-        (r) => {
-          let slices = 12;
-          for (let i = 0; i < slices; i++) {
-            p.push(); p.rotate((p.TWO_PI / slices) * i);
-            p.fill('#e0e0e0'); p.rect(0, r*0.8, r*0.06, r*1.2);
-            p.fill('#000000'); p.circle(0, r*1.4, r*0.15);
-            p.push(); p.rotate(p.TWO_PI / (slices * 2));
-            p.fill('#000000'); p.ellipse(0, r*0.6, r*0.2, r*0.5);
-            p.pop(); p.pop();
-          }
-          p.fill('#e0e0e0'); p.circle(0, 0, r*0.3);
-          p.fill('#000000'); p.circle(0, 0, r*0.15);
-        }
-      ];
+      let maxShakeDuringBreak = 0;
+      let calmFrames = 0; // To detect when shake has stopped
+      
+      let globalRotation = 0;
 
-      function initShards() {
-        shatterShards = [];
-        for(let i=0; i<40; i++) {
-           shatterShards.push({
-             x: p.random(-80, 80),
-             y: p.random(-80, 80),
-             vx: p.random(-15, 15),
-             vy: p.random(-15, 15),
-             size: p.random(10, 40),
-             rot: p.random(p.TWO_PI),
-             vrot: p.random(-0.2, 0.2),
-             color: p.random() > 0.5 ? '#000000' : '#e0e0e0'
-           });
-        }
-      }
-
+      // Initialize shards
       p.setup = () => {
         let canvas = p.createCanvas(p.windowWidth, p.windowHeight);
         canvas.parent(canvasContainer);
         p.rectMode(p.CENTER);
         p.noStroke();
-        currentVariation = p.floor(p.random(variations.length));
 
-        // Create shards for breaking phase
-        initShards();
-      };
-
-      p.mouseClicked = () => {
-        if (currentVisualPhase === 'bloom') {
-          currentVariation = (currentVariation + 1) % variations.length;
+        for(let g=0; g<NUM_GROUPS; g++) {
+          for(let i=0; i<SHARDS_PER_GROUP; i++) {
+             shards.push({
+               id: g*SHARDS_PER_GROUP + i,
+               group: g,
+               index: i,
+               x: 0, y: 0, rot: 0,
+               vx: 0, vy: 0, vrot: 0,
+               targetX: 0, targetY: 0, targetRot: 0,
+               w: 0, h: 0, 
+               targetW: 0, targetH: 0,
+               color: g % 2 === 0 ? '#000000' : '#e0e0e0',
+               type: 'rect'
+             });
+          }
+        }
+        
+        setPristine();
+        // Instantly snap to pristine
+        for(let s of shards) {
+           s.x = s.targetX; s.y = s.targetY; s.rot = s.targetRot;
+           s.w = s.targetW; s.h = s.targetH;
         }
       };
 
-      p.draw = () => {
-        p.background(255, 255, 255); // Light background
+      function setPristine() {
+        for(let g=0; g<NUM_GROUPS; g++) {
+           for(let i=0; i<SHARDS_PER_GROUP; i++) {
+              let s = shards[g*SHARDS_PER_GROUP + i];
+              s.targetX = 0;
+              s.targetY = 0;
+              s.targetRot = 0;
+              s.type = 'rect';
+              if (g === 0) { s.targetW = 160; s.targetH = 160; s.color = '#000000'; } // outer border
+              else if (g === 1) { s.targetW = 150; s.targetH = 150; s.color = '#ffffff'; } // inner white
+              else if (g === 2) { s.targetW = 60; s.targetH = 60; s.color = '#e0e0e0'; } // middle gray
+              else if (g === 3) { s.targetW = 20; s.targetH = 20; s.color = '#000000'; } // inner black
+              else { s.targetW = 0; s.targetH = 0; } // hide rest
+           }
+        }
+      }
 
-        // Get hardware shake
+      function generateMandala(shakeMag) {
+        // Scale complexity and size based on shake magnitude
+        let baseScale = p.map(shakeMag, 10, 60, 0.8, 2.5, true);
+        
+        for(let g=0; g<NUM_GROUPS; g++) {
+           let slicesOptions = [4, 8, 16];
+           let slices = slicesOptions[p.floor(p.random(slicesOptions.length))];
+           
+           // If shake is huge, push shapes further out
+           let radius = p.random(20, 100) * baseScale + (g * 15);
+           let w = p.random(10, 40) * baseScale;
+           let h = p.random(10, 80) * baseScale;
+           let type = p.random(['rect', 'ellipse', 'diamond']);
+           let isRadial = p.random() > 0.3; // 70% chance to face outward
+           
+           // Alternate colors to ensure contrast
+           let color = (g % 2 === 0) ? '#000000' : '#e0e0e0';
+           if (p.random() > 0.8) color = '#ffffff';
+
+           for(let i=0; i<SHARDS_PER_GROUP; i++) {
+              let s = shards[g*SHARDS_PER_GROUP + i];
+              if (i < slices) {
+                 let angle = (p.TWO_PI / slices) * i;
+                 s.targetX = p.cos(angle) * radius;
+                 s.targetY = p.sin(angle) * radius;
+                 
+                 s.targetRot = isRadial ? angle : p.random(p.TWO_PI);
+                 if (isRadial && type === 'rect') s.targetRot += p.PI/2; 
+                 
+                 s.targetW = w;
+                 s.targetH = h;
+                 s.type = type;
+                 s.color = color;
+              } else {
+                 s.targetW = 0;
+                 s.targetH = 0;
+              }
+           }
+        }
+      }
+
+      p.draw = () => {
+        p.background(255, 255, 255);
+
+        // Physics / Shake detection
         let shake = p.dist(0, 0, 0, p.accelerationX, p.accelerationY, p.accelerationZ);
         if (isNaN(shake)) shake = 0;
         
-        // Add mouse dragging to simulate shake
         if (p.mouseIsPressed) {
           let mouseVelocity = p.dist(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
           shake += mouseVelocity * 0.5;
         }
 
-        // Smooth out the shake value
         targetShake = p.max(targetShake * 0.95, shake); 
         currentShake = p.lerp(currentShake, targetShake, 0.1);
         shakeIntensity.set(currentShake);
 
-        // Phase transitions
+        // Phase Transitions
         if (currentVisualPhase === 'pristine' && currentShake > 8) {
-          visualPhase.set('breaking');
-        }
-
-        if (currentVisualPhase === 'breaking') {
-          breakProgress += 0.01 + (currentShake * 0.005);
-          if (breakProgress >= 1) {
-             visualPhase.set('bloom');
-          }
+           visualPhase.set('breaking');
+           maxShakeDuringBreak = currentShake;
+           calmFrames = 0;
         }
 
         if (currentVisualPhase === 'bloom' && currentState === 'home') {
-          if (currentShake > 25) { // Hard shake to reshake
-             currentVariation = p.floor(p.random(variations.length));
-             initShards();
-             breakProgress = 0;
-             visualPhase.set('breaking');
-             targetShake = 0;
-             currentShake = 0;
-          }
+           if (currentShake > 25) { // Reshake
+              visualPhase.set('breaking');
+              maxShakeDuringBreak = currentShake;
+              calmFrames = 0;
+           }
         }
 
-        // Draw depending on phase
+        if (currentVisualPhase === 'breaking') {
+           maxShakeDuringBreak = p.max(maxShakeDuringBreak, currentShake);
+           
+           // Apply chaotic force to shards
+           let force = currentShake * 0.15;
+           for(let s of shards) {
+              s.vx += p.random(-force, force);
+              s.vy += p.random(-force, force);
+              s.vrot += p.random(-force*0.02, force*0.02);
+           }
+
+           // Check if shake subsided to transition to bloom
+           if (currentShake < 5) {
+              calmFrames++;
+              if (calmFrames > 30) { // Half a second of calm
+                 visualPhase.set('bloom');
+                 generateMandala(maxShakeDuringBreak);
+              }
+           } else {
+              calmFrames = 0;
+           }
+        }
+
+        // Draw Scene
         p.push();
         p.translate(p.width / 2, p.height / 2);
         
@@ -248,39 +179,51 @@
           p.scale(1.5);
         }
 
-        let baseRadius = 120 + currentShake * 3;
+        // Global gentle rotation in bloom phase
+        if (currentVisualPhase === 'bloom') {
+           globalRotation += 0.002 + (currentShake * 0.001);
+        }
+        p.rotate(globalRotation);
 
-        if (currentVisualPhase === 'pristine') {
-           // Phase 1: Pristine Shell. Perfect, rigid, unmoving.
-           p.stroke('#000000');
-           p.strokeWeight(4);
-           p.fill('#ffffff');
-           p.rect(0, 0, 200, 200);
-           p.noStroke();
-           p.fill('#e0e0e0');
-           p.circle(0, 0, 100);
-           p.fill('#000000');
-           p.circle(0, 0, 20);
-        } else if (currentVisualPhase === 'breaking') {
-           // Phase 2: Kinetic Impact. The shape shatters.
-           for(let shard of shatterShards) {
-              shard.x += shard.vx * (1 + currentShake * 0.1);
-              shard.y += shard.vy * (1 + currentShake * 0.1);
-              shard.rot += shard.vrot;
+        // Update and draw shards
+        for(let s of shards) {
+           if (currentVisualPhase === 'breaking') {
+              // Physics movement
+              s.x += s.vx;
+              s.y += s.vy;
+              s.rot += s.vrot;
+              // Friction
+              s.vx *= 0.92;
+              s.vy *= 0.92;
+              s.vrot *= 0.95;
               
-              p.push();
-              p.translate(shard.x, shard.y);
-              p.rotate(shard.rot);
-              p.fill(shard.color);
-              p.rect(0, 0, shard.size, shard.size);
-              p.pop();
+              // Softly lerp to targets just to keep them from flying to infinity
+              s.w = p.lerp(s.w, s.targetW, 0.02);
+              s.h = p.lerp(s.h, s.targetH, 0.02);
+           } else {
+              // Morphing movement (Pristine or Bloom)
+              s.x = p.lerp(s.x, s.targetX, 0.04);
+              s.y = p.lerp(s.y, s.targetY, 0.04);
+              s.rot = p.lerp(s.rot, s.targetRot, 0.04);
+              s.w = p.lerp(s.w, s.targetW, 0.04);
+              s.h = p.lerp(s.h, s.targetH, 0.04);
+              s.vx = 0; s.vy = 0; s.vrot = 0;
            }
-        } else if (currentVisualPhase === 'bloom') {
-           // Phase 3: Kaleidoscope Bloom.
-           angle += 0.01 + (currentShake * 0.01);
-           p.rotate(angle);
-           if (variations[currentVariation]) {
-             variations[currentVariation](baseRadius);
+           
+           if (s.w > 0.5 && s.h > 0.5) {
+              p.push();
+              p.translate(s.x, s.y);
+              p.rotate(s.rot);
+              p.fill(s.color);
+              if (s.type === 'rect') p.rect(0, 0, s.w, s.h, s.w*0.1); // slight rounded corners
+              else if (s.type === 'ellipse') p.ellipse(0, 0, s.w, s.h);
+              else if (s.type === 'diamond') {
+                 p.beginShape();
+                 p.vertex(0, -s.h/2); p.vertex(s.w/2, 0);
+                 p.vertex(0, s.h/2); p.vertex(-s.w/2, 0);
+                 p.endShape(p.CLOSE);
+              }
+              p.pop();
            }
         }
 
