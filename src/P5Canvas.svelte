@@ -1,16 +1,24 @@
 <script>
   import { onMount } from 'svelte';
   import p5 from 'p5';
-  import { shakeIntensity, appState, hasShaken } from './store.js';
+  import { shakeIntensity, appState, hasShaken, visualPhase } from './store.js';
 
   let canvasContainer;
   let p5Instance;
 
   onMount(() => {
+    let currentVisualPhase = 'pristine';
+    const unsubPhase = visualPhase.subscribe(v => currentVisualPhase = v);
+    let currentState = 'home';
+    const unsubState = appState.subscribe(v => currentState = v);
+
     const sketch = (p) => {
       let currentShake = 0;
       let targetShake = 0;
       let angle = 0;
+      let breakProgress = 0; // 0 to 1
+      
+      let shatterShards = [];
 
       let currentVariation = 0;
       let variations = [
@@ -157,16 +165,37 @@
         }
       ];
 
+      function initShards() {
+        shatterShards = [];
+        for(let i=0; i<40; i++) {
+           shatterShards.push({
+             x: p.random(-80, 80),
+             y: p.random(-80, 80),
+             vx: p.random(-15, 15),
+             vy: p.random(-15, 15),
+             size: p.random(10, 40),
+             rot: p.random(p.TWO_PI),
+             vrot: p.random(-0.2, 0.2),
+             color: p.random() > 0.5 ? '#000000' : '#e0e0e0'
+           });
+        }
+      }
+
       p.setup = () => {
         let canvas = p.createCanvas(p.windowWidth, p.windowHeight);
         canvas.parent(canvasContainer);
         p.rectMode(p.CENTER);
         p.noStroke();
         currentVariation = p.floor(p.random(variations.length));
+
+        // Create shards for breaking phase
+        initShards();
       };
 
       p.mouseClicked = () => {
-        currentVariation = (currentVariation + 1) % variations.length;
+        if (currentVisualPhase === 'bloom') {
+          currentVariation = (currentVariation + 1) % variations.length;
+        }
       };
 
       p.draw = () => {
@@ -185,35 +214,74 @@
         // Smooth out the shake value
         targetShake = p.max(targetShake * 0.95, shake); 
         currentShake = p.lerp(currentShake, targetShake, 0.1);
-        
-        // Update stores
         shakeIntensity.set(currentShake);
-        if (currentShake > 15) {
-          hasShaken.set(true);
+
+        // Phase transitions
+        if (currentVisualPhase === 'pristine' && currentShake > 8) {
+          visualPhase.set('breaking');
         }
 
-        // Rotate square based on shake
-        angle += 0.01 + (currentShake * 0.01);
+        if (currentVisualPhase === 'breaking') {
+          breakProgress += 0.01 + (currentShake * 0.005);
+          if (breakProgress >= 1) {
+             visualPhase.set('bloom');
+          }
+        }
 
-        let currentState;
-        appState.subscribe(val => currentState = val)();
+        if (currentVisualPhase === 'bloom' && currentState === 'home') {
+          if (currentShake > 25) { // Hard shake to reshake
+             currentVariation = p.floor(p.random(variations.length));
+             initShards();
+             breakProgress = 0;
+             visualPhase.set('breaking');
+             targetShake = 0;
+             currentShake = 0;
+          }
+        }
 
+        // Draw depending on phase
         p.push();
         p.translate(p.width / 2, p.height / 2);
         
         if (currentState === 'journal_input' || currentState === 'journal_view') {
-          // Move up and expand when in journal mode
           p.translate(0, -p.height / 4);
           p.scale(1.5);
         }
 
-        p.rotate(angle);
-        
         let baseRadius = 120 + currentShake * 3;
-        
-        // Draw the current variation
-        if (variations[currentVariation]) {
-          variations[currentVariation](baseRadius);
+
+        if (currentVisualPhase === 'pristine') {
+           // Phase 1: Pristine Shell. Perfect, rigid, unmoving.
+           p.stroke('#000000');
+           p.strokeWeight(4);
+           p.fill('#ffffff');
+           p.rect(0, 0, 200, 200);
+           p.noStroke();
+           p.fill('#e0e0e0');
+           p.circle(0, 0, 100);
+           p.fill('#000000');
+           p.circle(0, 0, 20);
+        } else if (currentVisualPhase === 'breaking') {
+           // Phase 2: Kinetic Impact. The shape shatters.
+           for(let shard of shatterShards) {
+              shard.x += shard.vx * (1 + currentShake * 0.1);
+              shard.y += shard.vy * (1 + currentShake * 0.1);
+              shard.rot += shard.vrot;
+              
+              p.push();
+              p.translate(shard.x, shard.y);
+              p.rotate(shard.rot);
+              p.fill(shard.color);
+              p.rect(0, 0, shard.size, shard.size);
+              p.pop();
+           }
+        } else if (currentVisualPhase === 'bloom') {
+           // Phase 3: Kaleidoscope Bloom.
+           angle += 0.01 + (currentShake * 0.01);
+           p.rotate(angle);
+           if (variations[currentVariation]) {
+             variations[currentVariation](baseRadius);
+           }
         }
 
         p.pop();
@@ -235,6 +303,8 @@
 
     return () => {
       p5Instance.remove();
+      unsubPhase();
+      unsubState();
     };
   });
 </script>

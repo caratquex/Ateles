@@ -1,5 +1,5 @@
 <script>
-  import { appState, hasShaken } from "./store.js";
+  import { appState, visualPhase } from "./store.js";
 
   let permissionGranted = false;
   let needsPermission =
@@ -21,10 +21,8 @@
     }
   }
 
-  // Auto transition when shaken
-  $: if ($hasShaken) {
+  function enterJournal() {
     appState.set("journal_input");
-    hasShaken.set(false); // Reset
   }
 </script>
 
@@ -35,7 +33,17 @@
         Enable Motion Sensor
       </button>
     {/if}
-    <p class="prompt">Shake or drag to create your Ateles</p>
+    
+    {#if $visualPhase === 'pristine'}
+      <p class="prompt fade-in">Shake or drag to break the shell</p>
+    {:else if $visualPhase === 'breaking'}
+      <p class="prompt fade-out">Letting go...</p>
+    {:else if $visualPhase === 'bloom'}
+      <p class="prompt fade-in" style="font-size: 1.2rem; margin-bottom: 10px;">Find a shape you like. Shake to change.</p>
+      <button class="enter-btn fade-in" on:click={enterJournal}>
+        Write Journal
+      </button>
+    {/if}
   </div>
 </div>
 
@@ -69,15 +77,39 @@
     font-weight: 400;
     letter-spacing: 0.5px;
     color: var(--text-main);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.9);
+    transition: opacity 1s ease-in-out;
   }
 
-  .permission-btn {
-    padding: 12px 24px;
+  .fade-in {
+    opacity: 1;
+    animation: fadeIn 1s ease-in;
+  }
+
+  .fade-out {
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .permission-btn, .enter-btn {
+    padding: 14px 32px;
     background: var(--text-main);
-    color: white;
+    color: var(--bg-color);
     border-radius: 30px;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 500;
+    border: none;
+    cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .enter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   }
 </style>

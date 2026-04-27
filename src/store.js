@@ -3,6 +3,9 @@ import { writable } from 'svelte/store';
 // 'home', 'journal_input', 'journal_view'
 export const appState = writable('home');
 
+// 'pristine', 'breaking', 'bloom'
+export const visualPhase = writable('pristine');
+
 // Journal entries
 export const journalEntries = writable([]);
 
