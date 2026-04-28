@@ -3,8 +3,17 @@ import { writable } from 'svelte/store';
 // 'home', 'journal_input', 'journal_view'
 export const appState = writable('home');
 
-// 'pristine', 'breaking', 'bloom'
-export const visualPhase = writable('pristine');
+// 'drawing', 'ready_to_shake', 'breaking', 'bloom'
+export const visualPhase = writable('drawing');
+
+// 'ellipse', 'rect', 'line'
+export const strokeType = writable('rect');
+
+// '#000000', '#888888', '#ffffff'
+export const strokeColor = writable('#000000');
+
+// 'brush', 'eraser'
+export const activeTool = writable('brush');
 
 // Journal entries
 export const journalEntries = writable([]);
