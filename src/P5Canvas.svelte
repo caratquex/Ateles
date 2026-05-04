@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import p5 from 'p5';
-  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor, activeTool } from './store.js';
+  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor } from './store.js';
 
   let canvasContainer;
   let p5Instance;
@@ -15,8 +15,6 @@
     const unsubStroke = strokeType.subscribe(v => currentStrokeType = v);
     let currentStrokeColor = '#000000';
     const unsubColor = strokeColor.subscribe(v => currentStrokeColor = v);
-    let currentActiveTool = 'brush';
-    const unsubTool = activeTool.subscribe(v => currentActiveTool = v);
 
     const sketch = (p) => {
       let currentShake = 0;
@@ -32,6 +30,9 @@
       let bloomProgress = 0;
       let lastDrawPoint = null;
       let shardCounter = 0;
+      
+      let shakeCount = 0;
+      let originalShardCount = 0;
 
       // Initialize shards
       p.setup = () => {
@@ -45,12 +46,9 @@
         if (currentVisualPhase === 'drawing' && currentState === 'home') {
            let pt = p.createVector(p.mouseX - p.width/2, p.mouseY - p.height/2);
            
-           if (currentActiveTool === 'eraser') {
-               shards = shards.filter(s => p.dist(s.x, s.y, pt.x, pt.y) > 20);
-           } else {
-               if (!lastDrawPoint || p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y) > 5) {
-                   let len = lastDrawPoint ? p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y) : 5;
-                   let rot = lastDrawPoint ? p.atan2(pt.y - lastDrawPoint.y, pt.x - lastDrawPoint.x) : 0;
+           if (!lastDrawPoint || p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y) > 5) {
+               let len = lastDrawPoint ? p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y) : 5;
+               let rot = lastDrawPoint ? p.atan2(pt.y - lastDrawPoint.y, pt.x - lastDrawPoint.x) : 0;
                    
                    let w = len + 2;
                    let h = p.random(2, 6);
@@ -77,7 +75,6 @@
                    });
                    lastDrawPoint = pt;
                }
-           }
         }
       };
 
@@ -109,7 +106,10 @@
            maxShakeDuringBreak = currentShake;
            calmFrames = 0;
            bloomProgress = 0;
+           shakeCount = 1;
+           originalShardCount = shards.length;
            for(let s of shards) {
+               s.isDead = false;
                s.vx = p.random(-5, 5);
                s.vy = p.random(-5, 5);
                s.vrot = p.random(-0.2, 0.2);
@@ -121,12 +121,35 @@
               visualPhase.set('breaking');
               maxShakeDuringBreak = currentShake;
               calmFrames = 0;
-              for(let s of shards) {
+              shakeCount++;
+
+              let ratio = 1.0;
+              if (shakeCount === 2) ratio = 0.90;
+              else if (shakeCount === 3) ratio = 0.75;
+              else if (shakeCount === 4) ratio = 0.50;
+              else if (shakeCount === 5) ratio = 0.25;
+              else if (shakeCount >= 6) ratio = 0.0;
+
+              let targetCount = p.floor(originalShardCount * ratio);
+              let killCount = p.max(0, shards.length - targetCount);
+
+              let indices = shards.map((_, i) => i);
+              indices = p.shuffle(indices);
+
+              let killed = 0;
+              for(let i of indices) {
+                  let s = shards[i];
+                  if (killed < killCount) {
+                      s.isDead = true;
+                      killed++;
+                  } else {
+                      s.isDead = false;
+                      s.targetW = s.originalW;
+                      s.targetH = s.originalH;
+                  }
                   s.vx = p.random(-10, 10);
                   s.vy = p.random(-10, 10);
                   s.vrot = p.random(-0.3, 0.3);
-                  s.targetW = s.originalW;
-                  s.targetH = s.originalH;
               }
            }
         }
@@ -161,6 +184,10 @@
               calmFrames++;
               if (calmFrames > 30) { // Half a second of calm
                  visualPhase.set('bloom');
+                 
+                 // Filter out dead shards permanently
+                 shards = shards.filter(s => !s.isDead);
+
                  slices = p.random([4, 6, 8, 10, 12, 16]);
                  let baseSize = p.floor(shards.length / slices);
                  
@@ -228,6 +255,12 @@
               s.targetX = s.x;
               s.targetY = s.y;
               s.targetRot = s.rot;
+              
+              if (s.isDead) {
+                  s.targetW = 0;
+                  s.targetH = 0;
+              }
+              
               s.w = p.lerp(s.w, s.targetW, 0.02);
               s.h = p.lerp(s.h, s.targetH, 0.02);
            } else {
@@ -291,7 +324,6 @@
       unsubState();
       unsubStroke();
       unsubColor();
-      unsubTool();
     };
   });
 </script>

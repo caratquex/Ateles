@@ -12,8 +12,7 @@ export const strokeType = writable('rect');
 // '#000000', '#888888', '#ffffff'
 export const strokeColor = writable('#000000');
 
-// 'brush', 'eraser'
-export const activeTool = writable('brush');
+
 
 // Journal entries
 export const journalEntries = writable([]);

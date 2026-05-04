@@ -1,5 +1,5 @@
 <script>
-  import { appState, visualPhase, strokeType, strokeColor, activeTool } from "./store.js";
+  import { appState, visualPhase, strokeType, strokeColor } from "./store.js";
 
   let permissionGranted = false;
   let needsPermission =
@@ -42,23 +42,16 @@
       <div class="controls fade-in">
         <p class="prompt">Draw your feelings</p>
         
-        <div class="tools-row">
-          <button class="stroke-btn" class:active={$activeTool === 'brush'} on:click={() => activeTool.set('brush')}>Brush</button>
-          <button class="stroke-btn" class:active={$activeTool === 'eraser'} on:click={() => activeTool.set('eraser')}>Eraser</button>
+        <div class="color-selectors">
+          <button aria-label="Black color" class="color-btn" style="background: #000;" class:active={$strokeColor === '#000000'} on:click={() => strokeColor.set('#000000')}></button>
+          <button aria-label="Grey color" class="color-btn" style="background: #888;" class:active={$strokeColor === '#888888'} on:click={() => strokeColor.set('#888888')}></button>
+          <button aria-label="White color" class="color-btn" style="background: #fff;" class:active={$strokeColor === '#ffffff'} on:click={() => strokeColor.set('#ffffff')}></button>
         </div>
-
-        {#if $activeTool === 'brush'}
-          <div class="color-selectors">
-            <button aria-label="Black color" class="color-btn" style="background: #000;" class:active={$strokeColor === '#000000'} on:click={() => strokeColor.set('#000000')}></button>
-            <button aria-label="Grey color" class="color-btn" style="background: #888;" class:active={$strokeColor === '#888888'} on:click={() => strokeColor.set('#888888')}></button>
-            <button aria-label="White color" class="color-btn" style="background: #fff;" class:active={$strokeColor === '#ffffff'} on:click={() => strokeColor.set('#ffffff')}></button>
-          </div>
-          <div class="stroke-selectors">
-            <button class="stroke-btn" class:active={$strokeType === 'ellipse'} on:click={() => strokeType.set('ellipse')}>Round</button>
-            <button class="stroke-btn" class:active={$strokeType === 'rect'} on:click={() => strokeType.set('rect')}>Square</button>
-            <button class="stroke-btn" class:active={$strokeType === 'line'} on:click={() => strokeType.set('line')}>Line</button>
-          </div>
-        {/if}
+        <div class="stroke-selectors">
+          <button class="stroke-btn" class:active={$strokeType === 'ellipse'} on:click={() => strokeType.set('ellipse')}>Round</button>
+          <button class="stroke-btn" class:active={$strokeType === 'rect'} on:click={() => strokeType.set('rect')}>Square</button>
+          <button class="stroke-btn" class:active={$strokeType === 'line'} on:click={() => strokeType.set('line')}>Line</button>
+        </div>
 
         <button class="enter-btn" on:click={doneDrawing}>Done Drawing</button>
       </div>
@@ -162,7 +155,7 @@
     pointer-events: auto;
   }
 
-  .stroke-selectors, .tools-row, .color-selectors {
+  .stroke-selectors, .color-selectors {
     display: flex;
     gap: 10px;
     margin-bottom: 5px;
