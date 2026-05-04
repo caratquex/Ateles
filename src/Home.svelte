@@ -1,5 +1,14 @@
 <script>
-  import { appState, visualPhase, strokeType, strokeColor } from "./store.js";
+  import { appState, visualPhase, strokeType, strokeColor, isCameraActive } from "./store.js";
+  import HandTracker from "./HandTracker.svelte";
+
+  let enableCamera = false;
+
+  $: if ($visualPhase === "ready_to_shake" || $visualPhase === "bloom") {
+    enableCamera = true;
+  } else if ($visualPhase === "drawing") {
+    enableCamera = false;
+  }
 
   let permissionGranted = false;
   let needsPermission =
@@ -69,6 +78,10 @@
     {/if}
   </div>
 </div>
+
+{#if enableCamera}
+  <HandTracker />
+{/if}
 
 <style>
   .home-container {

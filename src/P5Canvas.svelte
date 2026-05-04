@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import p5 from 'p5';
-  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor } from './store.js';
+  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor, cameraShakeIntensity } from './store.js';
 
   let canvasContainer;
   let p5Instance;
@@ -15,6 +15,8 @@
     const unsubStroke = strokeType.subscribe(v => currentStrokeType = v);
     let currentStrokeColor = '#000000';
     const unsubColor = strokeColor.subscribe(v => currentStrokeColor = v);
+    let currentCameraShake = 0;
+    const unsubCameraShake = cameraShakeIntensity.subscribe(v => currentCameraShake = v);
 
     const sketch = (p) => {
       let currentShake = 0;
@@ -91,6 +93,9 @@
         let shake = p.dist(0, 0, 0, p.accelerationX, p.accelerationY, p.accelerationZ);
         if (isNaN(shake)) shake = 0;
         
+        // Add camera shake input
+        shake += currentCameraShake;
+
         if (p.mouseIsPressed) {
           let mouseVelocity = p.dist(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
           shake += mouseVelocity * 0.5;
@@ -324,6 +329,7 @@
       unsubState();
       unsubStroke();
       unsubColor();
+      unsubCameraShake();
     };
   });
 </script>
