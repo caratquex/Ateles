@@ -1,9 +1,22 @@
+<script context="module">
+  import { fade } from "svelte/transition";
+</script>
+
 <script>
-  import { appState, journalEntries, shakeIntensity, journalLayout } from './store.js';
+  import {
+    appState,
+    journalEntries,
+    shakeIntensity,
+    journalLayout,
+    activeEntryId,
+    clearCanvasTrigger
+  } from "./store.js";
 
-  $: entry = $journalEntries[0];
+  $: entry = $activeEntryId 
+    ? $journalEntries.find(e => e.id === $activeEntryId) 
+    : $journalEntries[$journalEntries.length - 1];
 
-  const LAYOUT_COUNT = 3;
+  const LAYOUT_COUNT = 5;
   let shakeCooldown = false;
   let wasShaking = false;
 
@@ -20,8 +33,12 @@
   function cycleLayout(dir = 1) {
     if (shakeCooldown) return;
     shakeCooldown = true;
-    journalLayout.update(l => ((l + dir) % LAYOUT_COUNT + LAYOUT_COUNT) % LAYOUT_COUNT);
-    setTimeout(() => { shakeCooldown = false; }, 600);
+    journalLayout.update(
+      (l) => (((l + dir) % LAYOUT_COUNT) + LAYOUT_COUNT) % LAYOUT_COUNT,
+    );
+    setTimeout(() => {
+      shakeCooldown = false;
+    }, 600);
   }
 
   // ── Swipe / drag detection ────────────────────────────
@@ -71,9 +88,11 @@
     pointerUp(e.clientX, e.clientY);
   }
 
-  function goHome() {
+  function startNewAteles() {
+    activeEntryId.set(null);
+    clearCanvasTrigger.update(v => v + 1);
     journalLayout.set(0);
-    appState.set('home');
+    appState.set("home");
   }
 </script>
 
@@ -97,11 +116,16 @@
       <p>No entries yet. Tap to go back.</p>
     </div>
   {/if}
-</div>
 
-<script context="module">
-  import { fade } from 'svelte/transition';
-</script>
+  <div class="fixed bottom-8 left-0 w-full flex justify-center z-50">
+    <button 
+      class="py-4 px-10 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
+      on:click={startNewAteles}
+    >
+      New Ateles
+    </button>
+  </div>
+</div>
 
 <style>
   /* ── Base container ─────────────────────────────────── */
@@ -122,11 +146,17 @@
 
   .content {
     transition: all var(--duration-slow) var(--easing-out);
+    max-height: 85vh;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+  }
+  .content::-webkit-scrollbar {
+    display: none; /* Safari/Chrome */
   }
 
   .hint {
     position: absolute;
-    bottom: var(--space-8);
+    bottom: 110px;
     left: 0;
     width: 100%;
     text-align: center;
@@ -148,6 +178,8 @@
     line-height: 1.1;
     margin-bottom: var(--space-1);
     color: var(--color-text-primary);
+    word-break: break-word;
+    overflow-wrap: break-word;
     transition: all var(--duration-slow) var(--easing-out);
   }
 
@@ -168,6 +200,8 @@
     letter-spacing: 0.01em;
     color: var(--color-text-primary);
     white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
     transition: all var(--duration-slow) var(--easing-out);
   }
 
@@ -180,11 +214,7 @@
   }
 
   .layout-0 .body-text {
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    max-width: 90%;
+    max-width: 85%;
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -202,10 +232,6 @@
   }
 
   .layout-1 .body-text {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
     max-width: 85%;
   }
 
@@ -230,11 +256,58 @@
   }
 
   .layout-2 .body-text {
-    display: -webkit-box;
-    -webkit-line-clamp: 8;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
     font-size: var(--font-body);
     line-height: 1.7;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     LAYOUT 3 — Right Aligned (text right, visual left)
+     ═══════════════════════════════════════════════════════ */
+  .layout-3 .content {
+    padding: var(--page-padding-top) var(--page-padding-x) 0;
+    text-align: right;
+  }
+
+  .layout-3 .title {
+    font-size: var(--font-h1);
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.015em;
+  }
+
+  .layout-3 .body-text {
+    max-width: 85%;
+    margin-left: auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     LAYOUT 4 — Chaos (chaotic typography, erratic positioning)
+     ═══════════════════════════════════════════════════════ */
+  .layout-4 .content {
+    padding: calc(var(--page-padding-top) * 1.5) var(--page-padding-x) 0;
+    text-align: justify;
+    transform: rotate(-1deg);
+  }
+
+  .layout-4 .title {
+    font-size: calc(var(--font-display) * 1.2);
+    font-weight: var(--weight-bold);
+    letter-spacing: -0.05em;
+    transform: translateX(-5px) rotate(2deg);
+    line-height: 0.9;
+    margin-bottom: var(--space-4);
+  }
+
+  .layout-4 .date {
+    transform: translateX(15px) rotate(-2deg);
+    opacity: 0.9;
+  }
+
+  .layout-4 .body-text {
+    font-family: monospace;
+    font-size: calc(var(--font-body-lg) * 1.05);
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    max-width: 95%;
+    transform: translateX(5px);
   }
 </style>

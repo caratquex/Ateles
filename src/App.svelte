@@ -3,7 +3,8 @@
   import Home from './Home.svelte';
   import JournalInput from './JournalInput.svelte';
   import JournalView from './JournalView.svelte';
-  import { appState, activeTheme } from './store.js';
+  import Gallery from './Gallery.svelte';
+  import { appState, activeTheme, activeEntryId, visualPhase, clearCanvasTrigger } from './store.js';
 
   let menuOpen = false;
   const themes = ['light', 'dark', 'warm', 'cool'];
@@ -16,6 +17,18 @@
 
   function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  function goHome() {
+    activeEntryId.set(null);
+    clearCanvasTrigger.update(v => v + 1);
+    appState.set('home');
+    menuOpen = false;
+  }
+
+  function goGallery() {
+    appState.set('gallery');
+    menuOpen = false;
   }
 
   $: {
@@ -34,6 +47,8 @@
     <JournalInput />
   {:else if $appState === 'journal_view'}
     <JournalView />
+  {:else if $appState === 'gallery'}
+    <Gallery />
   {/if}
 
   <div class="absolute top-6 right-6 z-[100]">
@@ -47,7 +62,8 @@
     {#if menuOpen}
       <div class="absolute top-full right-0 mt-2 bg-bg border border-border-default rounded-md shadow-md flex flex-col min-w-[150px] overflow-hidden">
         <button class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0" on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button>
-        <button class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0" on:click={() => { appState.set('home'); menuOpen = false; }}>Home</button>
+        <button class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0" on:click={goHome}>Home</button>
+        <button class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0" on:click={goGallery}>Gallery</button>
         <button class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0" on:click={() => { appState.set('journal_view'); menuOpen = false; }}>Journal</button>
       </div>
     {/if}

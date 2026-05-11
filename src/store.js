@@ -20,6 +20,15 @@ export const strokeColor = writable('#000000');
 // Journal entries
 export const journalEntries = writable([]);
 
+// Currently viewed journal entry ID (null means viewing live/new)
+export const activeEntryId = writable(null);
+
+// Captured Ateles data for the current session
+export const currentAtelesData = writable(null);
+
+// Trigger to explicitly clear the canvas shards
+export const clearCanvasTrigger = writable(0);
+
 // Journal view layout variant (0, 1, 2)
 export const journalLayout = writable(0);
 

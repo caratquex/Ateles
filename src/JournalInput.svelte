@@ -1,5 +1,5 @@
 <script>
-  import { appState, journalEntries } from './store.js';
+  import { appState, journalEntries, currentAtelesData } from './store.js';
 
   let title = '';
   let content = '';
@@ -10,10 +10,12 @@
         id: Date.now(),
         title: title || 'Untitled',
         content,
-        date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
+        date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+        atelesData: $currentAtelesData
       };
-      journalEntries.update(entries => [entry, ...entries]);
-      appState.set('journal_view');
+      // Append to the bottom so newest are at the bottom (like a calendar)
+      journalEntries.update(entries => [...entries, entry]);
+      appState.set('gallery');
     }
   }
 
@@ -76,7 +78,7 @@
 
   .editor-card {
     flex: 1;
-    max-height: 50vh;
+    max-height: 80vh;
     padding: var(--space-6);
     display: flex;
     flex-direction: column;
@@ -108,6 +110,11 @@
     resize: none;
     flex: 1;
     color: var(--color-text-primary);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .content-input::-webkit-scrollbar {
+    display: none;
   }
 
   .title-input::placeholder, .content-input::placeholder {
