@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ═══════════════════════════════════════════════════════
    ATELES — Global Design Tokens & Base Styles
    See DESIGN_SYSTEM.md for full documentation.
@@ -79,6 +83,51 @@
   --easing-out:       cubic-bezier(0.0, 0, 0.2, 1);
   --easing-in:        cubic-bezier(0.4, 0, 1, 1);
   --easing-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Dark Theme ───────────────────────────────────── */
+:root[data-theme="dark"] {
+  --color-bg:              #161616;
+  --color-surface:         #2C2C2C;
+  --color-accent:          #E3E3E3;
+  --color-text-primary:    #FFFFFF;
+  --color-text-secondary:  #A1A1A1;
+  --color-text-tertiary:   #737373;
+  --color-text-inverse:    #000000;
+  --color-border:          rgba(255, 255, 255, 0.10);
+  --color-border-strong:   rgba(255, 255, 255, 0.20);
+  --color-overlay:         rgba(22, 22, 22, 0.78);
+  --color-glass:           rgba(44, 44, 44, 0.60);
+}
+
+/* ── Warm Theme ───────────────────────────────────── */
+:root[data-theme="warm"] {
+  --color-bg:              #FDFBF7;
+  --color-surface:         #EBE5D9;
+  --color-accent:          #3D2A1C;
+  --color-text-primary:    #3D2A1C;
+  --color-text-secondary:  #705A49;
+  --color-text-tertiary:   #9A8A7C;
+  --color-text-inverse:    #FFFFFF;
+  --color-border:          rgba(61, 42, 28, 0.10);
+  --color-border-strong:   rgba(61, 42, 28, 0.20);
+  --color-overlay:         rgba(253, 251, 247, 0.78);
+  --color-glass:           rgba(235, 229, 217, 0.60);
+}
+
+/* ── Cool Theme ───────────────────────────────────── */
+:root[data-theme="cool"] {
+  --color-bg:              #F4F7FB;
+  --color-surface:         #DCE4F0;
+  --color-accent:          #1C2D4A;
+  --color-text-primary:    #1C2D4A;
+  --color-text-secondary:  #506786;
+  --color-text-tertiary:   #889DB6;
+  --color-text-inverse:    #FFFFFF;
+  --color-border:          rgba(28, 45, 74, 0.10);
+  --color-border-strong:   rgba(28, 45, 74, 0.20);
+  --color-overlay:         rgba(244, 247, 251, 0.78);
+  --color-glass:           rgba(220, 228, 240, 0.60);
 }
 
 

@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import p5 from 'p5';
-  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor, cameraShakeIntensity, journalLayout } from './store.js';
+  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor, cameraShakeIntensity, journalLayout, activeTheme } from './store.js';
 
   let canvasContainer;
   let p5Instance;
@@ -19,6 +19,13 @@
     const unsubCameraShake = cameraShakeIntensity.subscribe(v => currentCameraShake = v);
     let currentJournalLayout = 0;
     const unsubLayout = journalLayout.subscribe(v => currentJournalLayout = v);
+    
+    let bgHex = '#FFFFFF';
+    const unsubTheme = activeTheme.subscribe(v => {
+      setTimeout(() => {
+        bgHex = getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim() || '#FFFFFF';
+      }, 50);
+    });
 
     const sketch = (p) => {
       let currentShake = 0;
@@ -153,7 +160,7 @@
 
 
       p.draw = () => {
-        p.background(255, 255, 255);
+        p.background(bgHex);
 
         // Physics / Shake detection
         let shake = p.dist(0, 0, 0, p.accelerationX, p.accelerationY, p.accelerationZ);
@@ -394,12 +401,16 @@
 
         // Dim background if in journal mode
         if (currentState === 'journal_input') {
-          p.fill(255, 255, 255, 200);
+          let c = p.color(bgHex);
+          c.setAlpha(200);
+          p.fill(c);
           p.rectMode(p.CORNER);
           p.rect(0, 0, p.width, p.height);
         } else if (currentState === 'journal_view') {
-          // Lighter overlay — let kaleidoscope show as grey
-          p.fill(255, 255, 255, 150);
+          // Lighter overlay — let kaleidoscope show
+          let c = p.color(bgHex);
+          c.setAlpha(150);
+          p.fill(c);
           p.rectMode(p.CORNER);
           p.rect(0, 0, p.width, p.height);
         }
@@ -420,6 +431,7 @@
       unsubColor();
       unsubCameraShake();
       unsubLayout();
+      unsubTheme();
     };
   });
 </script>

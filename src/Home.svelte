@@ -1,6 +1,25 @@
 <script>
-  import { appState, visualPhase, strokeType, strokeColor, isCameraActive } from "./store.js";
+  import { appState, visualPhase, strokeType, strokeColor, isCameraActive, activeTheme } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
+
+  const brushPalettes = [
+    { name: 'Monochrome', colors: ['#000000', '#888888', '#ffffff'] },
+    { name: 'Vibrant', colors: ['#E53935', '#1E88E5', '#FDD835'] },
+    { name: 'Pastel', colors: ['#F48FB1', '#80CBC4', '#CE93D8'] },
+    { name: 'Earth', colors: ['#CC4A2C', '#2E4D43', '#E5C594'] }
+  ];
+  let currentPaletteIndex = 0;
+  $: activePalette = brushPalettes[currentPaletteIndex];
+  
+  function prevBrushPalette() {
+    currentPaletteIndex = (currentPaletteIndex - 1 + brushPalettes.length) % brushPalettes.length;
+    strokeColor.set(brushPalettes[currentPaletteIndex].colors[0]);
+  }
+
+  function nextBrushPalette() {
+    currentPaletteIndex = (currentPaletteIndex + 1) % brushPalettes.length;
+    strokeColor.set(brushPalettes[currentPaletteIndex].colors[0]);
+  }
 
   let enableCamera = false;
 
@@ -39,40 +58,52 @@
   }
 </script>
 
-<div class="home-container">
-  <div class="content">
+<div class="absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-end items-center pb-[max(15vh,64px)] pointer-events-none">
+  <div class="pointer-events-auto text-center flex flex-col gap-5 items-center w-[90%] mx-auto">
     {#if needsPermission}
-      <button class="permission-btn" on:click={requestPermission}>
+      <button class="py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover" on:click={requestPermission}>
         Enable Motion Sensor
       </button>
     {/if}
 
     {#if $visualPhase === "drawing"}
-      <div class="controls fade-in">
-        <p class="prompt">Draw your feelings</p>
+      <div class="flex flex-col items-center gap-4 pointer-events-auto opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]">
+        <p class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default" style="text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);">Draw your ego</p>
         
-        <div class="color-selectors">
-          <button aria-label="Black color" class="color-btn" style="background: #000;" class:active={$strokeColor === '#000000'} on:click={() => strokeColor.set('#000000')}></button>
-          <button aria-label="Grey color" class="color-btn" style="background: #888;" class:active={$strokeColor === '#888888'} on:click={() => strokeColor.set('#888888')}></button>
-          <button aria-label="White color" class="color-btn" style="background: #fff;" class:active={$strokeColor === '#ffffff'} on:click={() => strokeColor.set('#ffffff')}></button>
-        </div>
-        <div class="stroke-selectors">
-          <button class="stroke-btn" class:active={$strokeType === 'ellipse'} on:click={() => strokeType.set('ellipse')}>Round</button>
-          <button class="stroke-btn" class:active={$strokeType === 'rect'} on:click={() => strokeType.set('rect')}>Square</button>
-          <button class="stroke-btn" class:active={$strokeType === 'line'} on:click={() => strokeType.set('line')}>Line</button>
+        <div class="flex gap-3 mb-1 items-center justify-center">
+          {#each activePalette.colors as color, i}
+            <button 
+              aria-label="Color {i+1}" 
+              class="w-6 h-6 rounded-circle border-2 cursor-pointer shadow-sm transition-transform duration-normal ease-default {$strokeColor === color ? 'border-accent scale-125' : 'border-transparent'}" 
+              style="background: {color};" 
+              on:click={() => strokeColor.set(color)}>
+            </button>
+          {/each}
         </div>
 
-        <button class="enter-btn" on:click={doneDrawing}>Done Drawing</button>
+        <div class="flex items-center gap-4 mb-2 text-[1rem] font-medium">
+          <button class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1" on:click={prevBrushPalette}>&lt;</button>
+          <span class="min-w-[60px] text-center">{activePalette.name}</span>
+          <button class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1" on:click={nextBrushPalette}>&gt;</button>
+        </div>
+
+        <div class="flex gap-3 mb-1 items-center justify-center">
+          <button class="py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'ellipse' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeType.set('ellipse')}>Round</button>
+          <button class="py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'rect' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeType.set('rect')}>Square</button>
+          <button class="py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'line' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeType.set('line')}>Line</button>
+        </div>
+
+        <button class="w-[200px] mt-2 py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover" on:click={doneDrawing}>Done</button>
       </div>
     {:else if $visualPhase === "ready_to_shake"}
-      <p class="prompt fade-in">Shake to shatter them</p>
+      <p class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]" style="text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);">Shake to shatter them</p>
     {:else if $visualPhase === "breaking"}
-      <p class="prompt fade-out">Letting go...</p>
+      <p class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default opacity-0" style="text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);">Letting go...</p>
     {:else if $visualPhase === "bloom"}
-      <p class="prompt fade-in" style="font-size: var(--font-body-lg); margin-bottom: var(--space-3);">
+      <p class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]" style="font-size: var(--font-body-lg); margin-bottom: var(--space-3); text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);">
         Find a shape you like. Shake to change.
       </p>
-      <button class="enter-btn fade-in" on:click={enterJournal}>
+      <button class="py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]" on:click={enterJournal}>
         Write Journal
       </button>
     {/if}
@@ -84,124 +115,8 @@
 {/if}
 
 <style>
-  .home-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-    padding-bottom: 20vh;
-    pointer-events: none;
-  }
-
-  .content {
-    pointer-events: auto;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
-    align-items: center;
-    width: 90%;
-    margin-inline: auto;
-  }
-
-  .prompt {
-    font-size: var(--font-body-lg);
-    font-weight: var(--weight-regular);
-    letter-spacing: 0.01em;
-    color: var(--color-text-primary);
-    text-shadow:
-      0 0 10px var(--color-overlay),
-      0 0 20px var(--color-overlay);
-    transition: opacity var(--duration-xslow) var(--easing-default);
-    max-width: 100%;
-  }
-
-  .fade-in {
-    opacity: 1;
-    animation: fadeIn var(--duration-xslow) var(--easing-out);
-  }
-
-  .fade-out {
-    opacity: 0;
-  }
-
-  .permission-btn,
-  .enter-btn {
-    padding: var(--space-3) var(--space-8);
-    background: var(--color-accent);
-    color: var(--color-text-inverse);
-    border-radius: var(--radius-pill);
-    font-size: var(--font-body-lg);
-    font-weight: var(--weight-medium);
-    letter-spacing: 0.02em;
-    border: none;
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
-    transition:
-      transform var(--duration-normal) var(--easing-default),
-      box-shadow var(--duration-normal) var(--easing-default);
-  }
-
-  .enter-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-  }
-
-  .controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-4);
-    pointer-events: auto;
-  }
-
-  .stroke-selectors, .color-selectors {
-    display: flex;
-    gap: var(--space-3);
-    margin-bottom: var(--space-1);
-    align-items: center;
-    justify-content: center;
-  }
-
-  .color-btn {
-    width: 24px;
-    height: 24px;
-    border-radius: var(--radius-circle);
-    border: 2px solid transparent;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    transition: transform var(--duration-normal) var(--easing-default);
-  }
-  
-  .color-btn.active {
-    border: 2px solid var(--color-accent);
-    transform: scale(1.2);
-  }
-
-  .stroke-btn {
-    padding: var(--space-2) var(--space-4);
-    background: transparent;
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-accent);
-    border-radius: var(--radius-pill);
-    font-size: var(--font-body-sm);
-    font-weight: var(--weight-medium);
-    cursor: pointer;
-    transition: all var(--duration-normal) var(--easing-default);
-  }
-
-  .stroke-btn.active {
-    background: var(--color-accent);
-    color: var(--color-text-inverse);
-  }
-
-  .stroke-btn:hover {
-    opacity: 0.8;
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 </style>
