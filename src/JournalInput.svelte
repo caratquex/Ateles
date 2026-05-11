@@ -60,76 +60,93 @@
     z-index: 10;
     display: flex;
     flex-direction: column;
-    padding: 60px 24px 40px;
+    padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
     pointer-events: auto;
   }
 
   .header-title {
-    font-size: 1.8rem;
-    font-weight: 400;
+    font-size: var(--font-h2);
+    font-weight: var(--weight-regular);
+    letter-spacing: -0.01em;
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
     margin-top: auto;
+    color: var(--color-text-primary);
   }
 
   .editor-card {
     flex: 1;
     max-height: 50vh;
-    padding: 24px;
+    padding: var(--space-6);
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
-    background: var(--surface);
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    background: var(--color-glass);
   }
 
   .title-input {
-    font-family: inherit;
-    font-size: 2rem;
-    font-weight: 500;
+    font-family: var(--font-family);
+    font-size: var(--font-h1);
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.015em;
     border: none;
     background: transparent;
     outline: none;
-    color: var(--text-main);
+    color: var(--color-text-primary);
   }
 
   .content-input {
-    font-family: inherit;
-    font-size: 1.1rem;
+    font-family: var(--font-family);
+    font-size: var(--font-body-lg);
+    font-weight: var(--weight-regular);
     line-height: 1.5;
+    letter-spacing: 0.01em;
     border: none;
     background: transparent;
     outline: none;
     resize: none;
     flex: 1;
-    color: var(--text-main);
+    color: var(--color-text-primary);
   }
 
   .title-input::placeholder, .content-input::placeholder {
-    color: var(--text-secondary);
+    color: var(--color-text-secondary);
   }
 
   .actions {
     display: flex;
-    gap: 16px;
+    gap: var(--space-4);
     margin-top: auto;
   }
 
   .action-btn {
     flex: 1;
-    padding: 16px;
-    border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: 500;
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--font-body-lg);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.02em;
+    transition: all var(--duration-normal) var(--easing-default);
   }
 
   .secondary {
     background: rgba(0, 0, 0, 0.05);
-    color: var(--text-main);
+    color: var(--color-text-primary);
+  }
+
+  .secondary:hover {
+    background: rgba(0, 0, 0, 0.08);
   }
 
   .primary {
-    background: var(--accent);
-    color: #ffffff;
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-md);
+  }
+
+  .primary:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
   }
 </style>

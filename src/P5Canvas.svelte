@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import p5 from 'p5';
-  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor, cameraShakeIntensity } from './store.js';
+  import { shakeIntensity, appState, visualPhase, strokeType, strokeColor, cameraShakeIntensity, journalLayout } from './store.js';
 
   let canvasContainer;
   let p5Instance;
@@ -17,6 +17,8 @@
     const unsubColor = strokeColor.subscribe(v => currentStrokeColor = v);
     let currentCameraShake = 0;
     const unsubCameraShake = cameraShakeIntensity.subscribe(v => currentCameraShake = v);
+    let currentJournalLayout = 0;
+    const unsubLayout = journalLayout.subscribe(v => currentJournalLayout = v);
 
     const sketch = (p) => {
       let currentShake = 0;
@@ -36,7 +38,72 @@
       let shakeCount = 0;
       let originalShardCount = 0;
 
-      // Initialize shards
+      // Lerped journal visual positioning
+      let jX = 0, jY = 0, jScale = 1;
+      let jTargetX = 0, jTargetY = 0, jTargetScale = 1;
+
+      // Minimum distance between shard placements
+      const MIN_DRAW_DIST = 5;
+      // Interpolation step size for filling gaps between fast touch moves
+      const INTERP_STEP = 4;
+
+      function createShard(px, py, prevPt) {
+        let len = prevPt ? p.dist(prevPt.x, prevPt.y, px, py) : 5;
+        let rot = prevPt ? p.atan2(py - prevPt.y, px - prevPt.x) : 0;
+
+        let w = len + 2;
+        let h = p.random(2, 6);
+
+        if (currentStrokeType === 'ellipse' || currentStrokeType === 'rect') {
+          w = p.random(10, 25);
+          h = w;
+          rot = p.random(p.TWO_PI);
+        } else if (currentStrokeType === 'line') {
+          w = len + 5;
+          h = p.random(2, 6);
+        }
+
+        shards.push({
+          id: shardCounter++,
+          x: px, y: py, rot: rot, w: w, h: h,
+          targetW: w, targetH: h,
+          originalW: w, originalH: h,
+          vx: 0, vy: 0, vrot: 0,
+          targetX: px, targetY: py, targetRot: rot,
+          baseTargetX: px, baseTargetY: py, baseTargetRot: rot,
+          color: currentStrokeColor,
+          type: currentStrokeType === 'line' ? 'rect' : currentStrokeType
+        });
+      }
+
+      // Adds shards along a line from lastDrawPoint to (cx, cy),
+      // interpolating if the gap is large (fast swipes on mobile).
+      function addDrawPoints(cx, cy) {
+        if (currentVisualPhase !== 'drawing' || currentState !== 'home') return;
+
+        let pt = p.createVector(cx - p.width / 2, cy - p.height / 2);
+
+        if (!lastDrawPoint) {
+          createShard(pt.x, pt.y, null);
+          lastDrawPoint = pt;
+          return;
+        }
+
+        let d = p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y);
+        if (d < MIN_DRAW_DIST) return;
+
+        // Interpolate for smooth, gap-free strokes
+        let steps = Math.max(1, Math.floor(d / INTERP_STEP));
+        for (let i = 1; i <= steps; i++) {
+          let t = i / steps;
+          let ix = p.lerp(lastDrawPoint.x, pt.x, t);
+          let iy = p.lerp(lastDrawPoint.y, pt.y, t);
+          createShard(ix, iy, lastDrawPoint);
+          lastDrawPoint = p.createVector(ix, iy);
+        }
+      }
+
+      // Initialize canvas
       p.setup = () => {
         let canvas = p.createCanvas(p.windowWidth, p.windowHeight);
         canvas.parent(canvasContainer);
@@ -44,44 +111,43 @@
         p.noStroke();
       };
 
+      // ── Mouse handlers (desktop) ──────────────────────
       p.mouseDragged = () => {
         if (currentVisualPhase === 'drawing' && currentState === 'home') {
-           let pt = p.createVector(p.mouseX - p.width/2, p.mouseY - p.height/2);
-           
-           if (!lastDrawPoint || p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y) > 5) {
-               let len = lastDrawPoint ? p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y) : 5;
-               let rot = lastDrawPoint ? p.atan2(pt.y - lastDrawPoint.y, pt.x - lastDrawPoint.x) : 0;
-                   
-                   let w = len + 2;
-                   let h = p.random(2, 6);
-                   
-                   if (currentStrokeType === 'ellipse' || currentStrokeType === 'rect') {
-                       w = p.random(10, 25);
-                       h = w;
-                       rot = p.random(p.TWO_PI);
-                   } else if (currentStrokeType === 'line') {
-                       w = len + 5;
-                       h = p.random(2, 6);
-                   }
-
-                   shards.push({
-                       id: shardCounter++,
-                       x: pt.x, y: pt.y, rot: rot, w: w, h: h,
-                       targetW: w, targetH: h,
-                       originalW: w, originalH: h,
-                       vx: 0, vy: 0, vrot: 0,
-                       targetX: pt.x, targetY: pt.y, targetRot: rot,
-                       baseTargetX: pt.x, baseTargetY: pt.y, baseTargetRot: rot,
-                       color: currentStrokeColor,
-                       type: currentStrokeType === 'line' ? 'rect' : currentStrokeType
-                   });
-                   lastDrawPoint = pt;
-               }
+          addDrawPoints(p.mouseX, p.mouseY);
+          return false; // prevent default only when drawing
         }
       };
 
       p.mouseReleased = () => {
-         lastDrawPoint = null;
+        lastDrawPoint = null;
+      };
+
+      // ── Touch handlers (mobile) ───────────────────────
+      p.touchStarted = () => {
+        if (currentVisualPhase === 'drawing' && currentState === 'home') {
+          lastDrawPoint = null; // reset for new stroke
+          if (p.touches.length > 0) {
+            addDrawPoints(p.touches[0].x, p.touches[0].y);
+          }
+          return false; // prevent default only when drawing
+        }
+      };
+
+      p.touchMoved = () => {
+        if (currentVisualPhase === 'drawing' && currentState === 'home') {
+          if (p.touches.length > 0) {
+            addDrawPoints(p.touches[0].x, p.touches[0].y);
+          }
+          return false; // prevent default only when drawing
+        }
+      };
+
+      p.touchEnded = () => {
+        if (currentVisualPhase === 'drawing' && currentState === 'home') {
+          lastDrawPoint = null;
+          return false;
+        }
       };
 
 
@@ -249,9 +315,27 @@
         p.push();
         p.translate(p.width / 2, p.height / 2);
         
+        // Layout-aware journal visual positioning (lerped)
+        if (currentState === 'journal_input') {
+          jTargetX = 0; jTargetY = -p.height / 4; jTargetScale = 1.5;
+        } else if (currentState === 'journal_view') {
+          if (currentJournalLayout === 0) {
+            jTargetX = 0; jTargetY = p.height * 0.18; jTargetScale = 1.6;
+          } else if (currentJournalLayout === 1) {
+            jTargetX = p.width * 0.05; jTargetY = p.height * 0.12; jTargetScale = 1.4;
+          } else {
+            jTargetX = 0; jTargetY = -p.height * 0.18; jTargetScale = 0.8;
+          }
+        } else {
+          jTargetX = 0; jTargetY = 0; jTargetScale = 1;
+        }
+        jX = p.lerp(jX, jTargetX, 0.06);
+        jY = p.lerp(jY, jTargetY, 0.06);
+        jScale = p.lerp(jScale, jTargetScale, 0.06);
+
         if (currentState === 'journal_input' || currentState === 'journal_view') {
-          p.translate(0, -p.height / 4);
-          p.scale(1.5);
+          p.translate(jX, jY);
+          p.scale(jScale);
         }
 
         // Update shards morphing physics
@@ -309,8 +393,13 @@
         p.pop();
 
         // Dim background if in journal mode
-        if (currentState === 'journal_input' || currentState === 'journal_view') {
+        if (currentState === 'journal_input') {
           p.fill(255, 255, 255, 200);
+          p.rectMode(p.CORNER);
+          p.rect(0, 0, p.width, p.height);
+        } else if (currentState === 'journal_view') {
+          // Lighter overlay — let kaleidoscope show as grey
+          p.fill(255, 255, 255, 150);
           p.rectMode(p.CORNER);
           p.rect(0, 0, p.width, p.height);
         }
@@ -330,6 +419,7 @@
       unsubStroke();
       unsubColor();
       unsubCameraShake();
+      unsubLayout();
     };
   });
 </script>
@@ -345,5 +435,9 @@
     height: 100%;
     z-index: 0;
     pointer-events: auto;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 </style>

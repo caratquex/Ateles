@@ -17,6 +17,9 @@ export const strokeColor = writable('#000000');
 // Journal entries
 export const journalEntries = writable([]);
 
+// Journal view layout variant (0, 1, 2)
+export const journalLayout = writable(0);
+
 // Current shaking intensity/state
 export const shakeIntensity = writable(0);
 export const hasShaken = writable(false);

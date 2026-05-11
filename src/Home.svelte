@@ -69,7 +69,7 @@
     {:else if $visualPhase === "breaking"}
       <p class="prompt fade-out">Letting go...</p>
     {:else if $visualPhase === "bloom"}
-      <p class="prompt fade-in" style="font-size: 1.2rem; margin-bottom: 10px;">
+      <p class="prompt fade-in" style="font-size: var(--font-body-lg); margin-bottom: var(--space-3);">
         Find a shape you like. Shake to change.
       </p>
       <button class="enter-btn fade-in" on:click={enterJournal}>
@@ -104,74 +104,67 @@
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--space-5);
     align-items: center;
+    width: 90%;
+    margin-inline: auto;
   }
 
   .prompt {
-    font-size: 1.5rem;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-    color: var(--text-main);
+    font-size: var(--font-body-lg);
+    font-weight: var(--weight-regular);
+    letter-spacing: 0.01em;
+    color: var(--color-text-primary);
     text-shadow:
-      0 0 10px rgba(255, 255, 255, 0.8),
-      0 0 20px rgba(255, 255, 255, 0.9);
-    transition: opacity 1s ease-in-out;
+      0 0 10px var(--color-overlay),
+      0 0 20px var(--color-overlay);
+    transition: opacity var(--duration-xslow) var(--easing-default);
+    max-width: 100%;
   }
 
   .fade-in {
     opacity: 1;
-    animation: fadeIn 1s ease-in;
+    animation: fadeIn var(--duration-xslow) var(--easing-out);
   }
 
   .fade-out {
     opacity: 0;
   }
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
   .permission-btn,
   .enter-btn {
-    padding: 14px 32px;
-    background: var(--text-main);
-    color: var(--bg-color);
-    border-radius: 30px;
-    font-size: 1.1rem;
-    font-weight: 500;
+    padding: var(--space-3) var(--space-8);
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    border-radius: var(--radius-pill);
+    font-size: var(--font-body-lg);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.02em;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     transition:
-      transform 0.2s,
-      box-shadow 0.2s;
+      transform var(--duration-normal) var(--easing-default),
+      box-shadow var(--duration-normal) var(--easing-default);
   }
 
   .enter-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-hover);
   }
 
   .controls {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
+    gap: var(--space-4);
     pointer-events: auto;
   }
 
   .stroke-selectors, .color-selectors {
     display: flex;
-    gap: 10px;
-    margin-bottom: 5px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-1);
     align-items: center;
     justify-content: center;
   }
@@ -179,32 +172,33 @@
   .color-btn {
     width: 24px;
     height: 24px;
-    border-radius: 50%;
+    border-radius: var(--radius-circle);
     border: 2px solid transparent;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: transform 0.2s;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-normal) var(--easing-default);
   }
   
   .color-btn.active {
-    border: 2px solid var(--text-main);
+    border: 2px solid var(--color-accent);
     transform: scale(1.2);
   }
 
   .stroke-btn {
-    padding: 8px 16px;
+    padding: var(--space-2) var(--space-4);
     background: transparent;
-    color: var(--text-main);
-    border: 1px solid var(--text-main);
-    border-radius: 20px;
-    font-size: 0.9rem;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    font-size: var(--font-body-sm);
+    font-weight: var(--weight-medium);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--duration-normal) var(--easing-default);
   }
 
   .stroke-btn.active {
-    background: var(--text-main);
-    color: var(--bg-color);
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
   }
 
   .stroke-btn:hover {
