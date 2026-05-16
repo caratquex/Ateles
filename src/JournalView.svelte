@@ -9,7 +9,8 @@
     shakeIntensity,
     journalLayout,
     activeEntryId,
-    clearCanvasTrigger
+    clearCanvasTrigger,
+    saveVisualTrigger
   } from "./store.js";
 
   $: entry = $activeEntryId 
@@ -94,6 +95,10 @@
     journalLayout.set(0);
     appState.set("home");
   }
+
+  function saveVisual() {
+    saveVisualTrigger.update(v => v + 1);
+  }
 </script>
 
 <div
@@ -117,9 +122,15 @@
     </div>
   {/if}
 
-  <div class="fixed bottom-8 left-0 w-full flex justify-center z-50">
+  <div class="fixed bottom-8 left-0 w-full flex justify-center gap-4 z-50">
     <button 
-      class="py-4 px-10 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
+      class="py-4 px-8 bg-surface text-text-primary rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
+      on:click={saveVisual}
+    >
+      Save PNG
+    </button>
+    <button 
+      class="py-4 px-8 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
       on:click={startNewAteles}
     >
       New Ateles

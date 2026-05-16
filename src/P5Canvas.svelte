@@ -13,7 +13,8 @@
     currentAtelesData,
     activeEntryId,
     journalEntries,
-    clearCanvasTrigger
+    clearCanvasTrigger,
+    saveVisualTrigger
   } from "./store.js";
 
   let canvasContainer;
@@ -51,6 +52,11 @@
     const unsubEntries = journalEntries.subscribe(v => (allEntries = v));
     let unsubActiveEntry;
     let unsubClear;
+
+    let saveTriggered = false;
+    const unsubSave = saveVisualTrigger.subscribe((v) => {
+      if (v > 0) saveTriggered = true;
+    });
 
     const sketch = (p) => {
       let currentShake = 0;
@@ -224,7 +230,11 @@
       };
 
       p.draw = () => {
-        p.background(bgHex);
+        if (saveTriggered) {
+          p.clear();
+        } else {
+          p.background(bgHex);
+        }
 
         // Physics / Shake detection
         let shake = p.dist(
@@ -528,19 +538,26 @@
         p.pop();
 
         // Dim background if in journal mode
-        if (currentState === "journal_input") {
-          let c = p.color(bgHex);
-          c.setAlpha(200);
-          p.fill(c);
-          p.rectMode(p.CORNER);
-          p.rect(0, 0, p.width, p.height);
-        } else if (currentState === "journal_view") {
-          // Lighter overlay — let kaleidoscope show
-          let c = p.color(bgHex);
-          c.setAlpha(150);
-          p.fill(c);
-          p.rectMode(p.CORNER);
-          p.rect(0, 0, p.width, p.height);
+        if (!saveTriggered) {
+          if (currentState === "journal_input") {
+            let c = p.color(bgHex);
+            c.setAlpha(200);
+            p.fill(c);
+            p.rectMode(p.CORNER);
+            p.rect(0, 0, p.width, p.height);
+          } else if (currentState === "journal_view") {
+            // Lighter overlay — let kaleidoscope show
+            let c = p.color(bgHex);
+            c.setAlpha(150);
+            p.fill(c);
+            p.rectMode(p.CORNER);
+            p.rect(0, 0, p.width, p.height);
+          }
+        }
+
+        if (saveTriggered) {
+          p.saveCanvas('Ateles_Visual', 'png');
+          saveTriggered = false;
         }
       };
 
@@ -561,6 +578,7 @@
       unsubTheme();
       unsubEntries();
       unsubActiveEntry();
+      unsubSave();
       if (unsubClear) unsubClear();
       if (p5Instance) p5Instance.remove();
     };

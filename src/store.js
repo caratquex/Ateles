@@ -29,6 +29,9 @@ export const currentAtelesData = writable(null);
 // Trigger to explicitly clear the canvas shards
 export const clearCanvasTrigger = writable(0);
 
+// Trigger to save the visual as PNG
+export const saveVisualTrigger = writable(0);
+
 // Journal view layout variant (0, 1, 2)
 export const journalLayout = writable(0);
 
