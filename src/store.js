@@ -21,6 +21,7 @@ export const strokeColor = writable('#000000');
 export const journalEntries = writable([]);
 
 // Currently viewed journal entry ID (null means viewing live/new)
+/** @type {import('svelte/store').Writable<number | string | null>} */
 export const activeEntryId = writable(null);
 
 // Captured Ateles data for the current session

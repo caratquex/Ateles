@@ -110,7 +110,7 @@
   </div>
 </div>
 
-{#if enableCamera}
+{#if false && enableCamera}
   <HandTracker />
 {/if}
 

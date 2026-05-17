@@ -1,6 +1,7 @@
 <script>
   import { journalEntries, activeEntryId, appState, clearCanvasTrigger, journalLayout } from './store.js';
 
+  /** @param {string|number} id */
   function openJournal(id) {
     activeEntryId.set(id);
     appState.set('journal_view');
@@ -13,10 +14,12 @@
     appState.set('home');
   }
 
+  /** @param {string|number|Date} timestamp */
   function formatDay(timestamp) {
     return new Date(timestamp).toLocaleDateString('en-US', { weekday: 'short' });
   }
 
+  /** @param {string|number|Date} timestamp */
   function formatDate(timestamp) {
     const d = new Date(timestamp);
     return `${d.getDate()}/${d.getMonth() + 1}`;
