@@ -1,11 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════
+   ATELES — Global Design Tokens & Base Styles
+   See DESIGN_SYSTEM.md for full documentation.
+   ═══════════════════════════════════════════════════════ */
+
 :root {
-  --bg-color: #ffffff;
-  --text-main: #000000;
-  --text-secondary: #555555;
-  --accent: #000000;
-  --surface: #e0e0e0;
-  --border: rgba(0, 0, 0, 0.1);
+  /* ── 60-30-10 Color Tokens ────────────────────────── */
+  --color-bg:              #FFFFFF;          /* 60% — Dominant */
+  --color-surface:         #E0E0E0;          /* 30% — Secondary */
+  --color-accent:          #000000;          /* 10% — Accent */
+
+  --color-text-primary:    #000000;
+  --color-text-secondary:  #555555;
+  --color-text-tertiary:   #888888;
+  --color-text-inverse:    #FFFFFF;
+  --color-border:          rgba(0, 0, 0, 0.10);
+  --color-border-strong:   rgba(0, 0, 0, 0.20);
+  --color-overlay:         rgba(255, 255, 255, 0.78);
+  --color-glass:           rgba(224, 224, 224, 0.60);
+
+  /* ── Typography ───────────────────────────────────── */
+  --font-family:           'Elms Sans', -apple-system, BlinkMacSystemFont,
+                           "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --font-display:          2.488rem;
+  --font-h1:               2.074rem;
+  --font-h2:               1.728rem;
+  --font-h3:               1.44rem;
+  --font-body-lg:          1.2rem;
+  --font-body:             1rem;
+  --font-body-sm:          0.875rem;
+  --font-caption:          0.75rem;
+  --font-button:           1rem;
+
+  --weight-light:          300;
+  --weight-regular:        400;
+  --weight-medium:         500;
+  --weight-semibold:       600;
+  --weight-bold:           700;
+
+  /* ── Spacing (4px base) ───────────────────────────── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ── Layout ───────────────────────────────────────── */
+  --content-max-width:     480px;
+  --page-padding-x:        5vw;
+  --page-padding-top:      60px;
+  --page-padding-bottom:   var(--space-10);
+
+  /* ── Elevation ────────────────────────────────────── */
+  --shadow-sm:    0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md:    0 4px 15px rgba(0, 0, 0, 0.10);
+  --shadow-lg:    0 8px 32px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.15);
+  --blur-glass:   12px;
+
+  /* ── Border Radius ────────────────────────────────── */
+  --radius-sm:     8px;
+  --radius-md:     16px;
+  --radius-lg:     24px;
+  --radius-pill:   30px;
+  --radius-circle: 50%;
+
+  /* ── Motion ───────────────────────────────────────── */
+  --duration-fast:    150ms;
+  --duration-normal:  200ms;
+  --duration-slow:    500ms;
+  --duration-xslow:   1000ms;
+  --easing-default:   ease;
+  --easing-out:       cubic-bezier(0.0, 0, 0.2, 1);
+  --easing-in:        cubic-bezier(0.4, 0, 1, 1);
+  --easing-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* ── Dark Theme ───────────────────────────────────── */
+:root[data-theme="dark"] {
+  --color-bg:              #161616;
+  --color-surface:         #2C2C2C;
+  --color-accent:          #E3E3E3;
+  --color-text-primary:    #FFFFFF;
+  --color-text-secondary:  #A1A1A1;
+  --color-text-tertiary:   #737373;
+  --color-text-inverse:    #000000;
+  --color-border:          rgba(255, 255, 255, 0.10);
+  --color-border-strong:   rgba(255, 255, 255, 0.20);
+  --color-overlay:         rgba(22, 22, 22, 0.78);
+  --color-glass:           rgba(44, 44, 44, 0.60);
+}
+
+/* ── Warm Theme ───────────────────────────────────── */
+:root[data-theme="warm"] {
+  --color-bg:              #FDFBF7;
+  --color-surface:         #EBE5D9;
+  --color-accent:          #3D2A1C;
+  --color-text-primary:    #3D2A1C;
+  --color-text-secondary:  #705A49;
+  --color-text-tertiary:   #9A8A7C;
+  --color-text-inverse:    #FFFFFF;
+  --color-border:          rgba(61, 42, 28, 0.10);
+  --color-border-strong:   rgba(61, 42, 28, 0.20);
+  --color-overlay:         rgba(253, 251, 247, 0.78);
+  --color-glass:           rgba(235, 229, 217, 0.60);
+}
+
+/* ── Cool Theme ───────────────────────────────────── */
+:root[data-theme="cool"] {
+  --color-bg:              #F4F7FB;
+  --color-surface:         #DCE4F0;
+  --color-accent:          #1C2D4A;
+  --color-text-primary:    #1C2D4A;
+  --color-text-secondary:  #506786;
+  --color-text-tertiary:   #889DB6;
+  --color-text-inverse:    #FFFFFF;
+  --color-border:          rgba(28, 45, 74, 0.10);
+  --color-border-strong:   rgba(28, 45, 74, 0.20);
+  --color-overlay:         rgba(244, 247, 251, 0.78);
+  --color-glass:           rgba(220, 228, 240, 0.60);
+}
+
+
+/* ── Reset ──────────────────────────────────────────── */
 
 * {
   box-sizing: border-box;
@@ -13,11 +139,23 @@
   padding: 0;
 }
 
+html {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
-  font-family: 'Elms Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  overflow-x: hidden;
+  font-family: var(--font-family);
+  font-size: var(--font-body);
+  font-weight: var(--weight-regular);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  overscroll-behavior: none;
+  width: 100%;
+  height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -30,22 +168,73 @@ body {
   flex-direction: column;
 }
 
+
+/* ── Glass Panel (shared utility) ───────────────────── */
+
 .glass-panel {
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-  border-radius: 24px;
+  background: var(--color-glass);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-lg);
 }
 
+
+/* ── Global Button Reset ────────────────────────────── */
+
 button {
-  font-family: inherit;
+  font-family: var(--font-family);
+  font-size: var(--font-button);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) var(--easing-default);
 }
 
 button:active {
   transform: scale(0.96);
+}
+
+
+/* ── Shared Keyframes ───────────────────────────────── */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+
+/* ── Responsive (Tablet 768px+) ─────────────────────── */
+
+@media (min-width: 48rem) {
+  :root {
+    --page-padding-x:   var(--space-8);
+    --font-display:     3rem;
+    --font-h1:          2.4rem;
+    --content-max-width: 600px;
+  }
+}
+
+/* ── Responsive (Desktop 1024px+) ───────────────────── */
+
+@media (min-width: 64rem) {
+  :root {
+    --page-padding-x:   var(--space-12);
+    --font-display:     3.5rem;
+    --font-h1:          2.8rem;
+    --content-max-width: 720px;
+  }
 }
