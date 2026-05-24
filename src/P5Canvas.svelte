@@ -191,19 +191,22 @@
       };
 
       // ── Mouse handlers (desktop) ──────────────────────
-      p.mouseDragged = () => {
+      p.mouseDragged = (event) => {
+        if (event && event.target && event.target.tagName !== 'CANVAS') return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           addDrawPoints(p.mouseX, p.mouseY);
           return false; // prevent default only when drawing
         }
       };
 
-      p.mouseReleased = () => {
+      p.mouseReleased = (event) => {
+        if (event && event.target && event.target.tagName !== 'CANVAS') return;
         lastDrawPoint = null;
       };
 
       // ── Touch handlers (mobile) ───────────────────────
-      p.touchStarted = () => {
+      p.touchStarted = (event) => {
+        if (event && event.target && event.target.tagName !== 'CANVAS') return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null; // reset for new stroke
           if (p.touches.length > 0) {
@@ -213,7 +216,8 @@
         }
       };
 
-      p.touchMoved = () => {
+      p.touchMoved = (event) => {
+        if (event && event.target && event.target.tagName !== 'CANVAS') return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           if (p.touches.length > 0) {
             addDrawPoints(p.touches[0].x, p.touches[0].y);
@@ -222,7 +226,8 @@
         }
       };
 
-      p.touchEnded = () => {
+      p.touchEnded = (event) => {
+        if (event && event.target && event.target.tagName !== 'CANVAS') return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null;
           return false;
