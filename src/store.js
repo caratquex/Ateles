@@ -1,7 +1,11 @@
 import { writable } from 'svelte/store';
 
-// 'home', 'journal_input', 'journal_view'
-export const appState = writable('home');
+// 'home', 'journal_input', 'journal_view', 'auth'
+export const appState = writable('auth');
+
+// Currently authenticated Supabase user
+/** @type {import('svelte/store').Writable<import('@supabase/supabase-js').User | null>} */
+export const currentUser = writable(null);
 
 // 'light', 'dark', 'warm', 'cool'
 export const activeTheme = writable('light');
@@ -18,6 +22,7 @@ export const strokeColor = writable('#000000');
 
 
 // Journal entries
+/** @type {import('svelte/store').Writable<any[]>} */
 export const journalEntries = writable([]);
 
 // Currently viewed journal entry ID (null means viewing live/new)
@@ -25,6 +30,7 @@ export const journalEntries = writable([]);
 export const activeEntryId = writable(null);
 
 // Captured Ateles data for the current session
+/** @type {import('svelte/store').Writable<any>} */
 export const currentAtelesData = writable(null);
 
 // Trigger to explicitly clear the canvas shards

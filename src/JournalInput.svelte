@@ -1,26 +1,60 @@
 <script>
-  import { appState, journalEntries, currentAtelesData } from './store.js';
+  import { supabase } from './lib/supabase.js';
+  import { appState, journalEntries, currentAtelesData, currentUser } from './store.js';
 
   let title = '';
   let content = '';
+  let loading = false;
+  let errorMsg = '';
 
-  function save() {
-    if (title || content) {
-      const entry = {
-        id: Date.now(),
-        title: title || 'Untitled',
-        content,
-        date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
-        atelesData: $currentAtelesData
-      };
-      // Append to the bottom so newest are at the bottom (like a calendar)
-      journalEntries.update(entries => [...entries, entry]);
-      appState.set('gallery');
+  async function save() {
+    if (!title && !content) return;
+    loading = true;
+    errorMsg = '';
+
+    const entryId = Date.now();
+    const entryData = {
+      id: entryId,
+      user_id: $currentUser ? $currentUser.id : null,
+      title: title || 'Untitled',
+      content,
+      ateles_data: $currentAtelesData
+    };
+
+    if ($currentUser) {
+      try {
+        const { error } = await supabase
+          .from('journal_entries')
+          .insert(entryData);
+
+        if (error) {
+          console.error('Error saving journal entry:', error.message);
+          errorMsg = `Failed to save: ${error.message}`;
+          loading = false;
+          return;
+        }
+      } catch (err) {
+        console.error('Unexpected error saving entry:', err);
+        errorMsg = 'An unexpected error occurred while saving.';
+        loading = false;
+        return;
+      }
     }
+
+    // Update local store chronologically
+    const localEntry = {
+      id: entryId,
+      title: entryData.title,
+      content: entryData.content,
+      date: new Date(entryId).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+      atelesData: entryData.ateles_data
+    };
+    journalEntries.update(entries => [...entries, localEntry]);
+    loading = false;
+    appState.set('gallery');
   }
 
   function post() {
-    // For now, post acts like save
     save();
   }
 </script>
@@ -28,23 +62,35 @@
 <div class="journal-container" in:fade={{ duration: 500 }}>
   <h1 class="header-title">How was your day?</h1>
   
+  {#if errorMsg}
+    <div class="mb-4 bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm text-center">
+      {errorMsg}
+    </div>
+  {/if}
+
   <div class="glass-panel editor-card">
     <input 
       type="text" 
       class="title-input" 
-      placeholder="Lorem ipsum" 
+      placeholder="Title of your day..." 
       bind:value={title} 
+      disabled={loading}
     />
     <textarea 
       class="content-input" 
-      placeholder="Lorem ipsum dolor sit amet..." 
+      placeholder="Reflect on your thoughts here..." 
       bind:value={content}
+      disabled={loading}
     ></textarea>
   </div>
   
   <div class="actions">
-    <button class="action-btn secondary" on:click={save}>Save</button>
-    <button class="action-btn primary" on:click={post}>Post</button>
+    <button class="action-btn secondary" on:click={save} disabled={loading || (!title && !content)}>
+      {loading ? 'Saving...' : 'Save'}
+    </button>
+    <button class="action-btn primary" on:click={post} disabled={loading || (!title && !content)}>
+      {loading ? 'Posting...' : 'Post'}
+    </button>
   </div>
 </div>
 

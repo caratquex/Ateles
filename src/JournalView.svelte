@@ -89,6 +89,11 @@
     pointerUp(e.clientX, e.clientY);
   }
 
+  function goHome() {
+    activeEntryId.set(null);
+    appState.set("home");
+  }
+
   function startNewAteles() {
     activeEntryId.set(null);
     clearCanvasTrigger.update(v => v + 1);
