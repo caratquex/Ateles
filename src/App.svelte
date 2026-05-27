@@ -18,7 +18,7 @@
   import { onMount } from "svelte";
 
   let menuOpen = false;
-  const themes = ["light", "dark", "warm", "cool"];
+  const themes = ["light", "dark", "warm", "cool", "japandi", "cyberpunk", "retro", "bauhaus"];
   let entriesLoading = false;
 
   async function fetchJournalEntries() {

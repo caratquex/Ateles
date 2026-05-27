@@ -6,7 +6,11 @@
     { name: 'Monochrome', colors: ['#000000', '#888888', '#ffffff'] },
     { name: 'Vibrant', colors: ['#E53935', '#1E88E5', '#FDD835'] },
     { name: 'Pastel', colors: ['#F48FB1', '#80CBC4', '#CE93D8'] },
-    { name: 'Earth', colors: ['#CC4A2C', '#2E4D43', '#E5C594'] }
+    { name: 'Earth', colors: ['#CC4A2C', '#2E4D43', '#E5C594'] },
+    { name: 'Japandi', colors: ['#2F2F2F', '#8C7B6B', '#E8E0D5'] },
+    { name: 'Cyberpunk', colors: ['#00E5FF', '#FF2D78', '#0D0D0D'] },
+    { name: 'Retro', colors: ['#4A6741', '#C75B3A', '#E8A838'] },
+    { name: 'Bauhaus', colors: ['#F7B731', '#1A3A8F', '#D62828'] }
   ];
   let currentPaletteIndex = 0;
   $: activePalette = brushPalettes[currentPaletteIndex];

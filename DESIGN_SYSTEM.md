@@ -110,6 +110,21 @@ The **60-30-10 rule** creates visual hierarchy by distributing color across thre
 | **30%**      | Secondary  | `--color-surface`    | Light Grey  | `#E0E0E0` | Glass panels, cards, input fields, overlays   |
 | **10%**      | Accent     | `--color-accent`     | Black       | `#000000` | Primary buttons, active states, key text      |
 
+### Premium Theme Options
+
+The system supports eight premium cohesive themes, mapped directly to the 60-30-10 ratios:
+
+| Theme Name | 60% Dominant (Bg) | 30% Secondary (Surface) | 10% Accent (CTAs) | Mood & Feeling |
+| ---------- | ----------------- | ----------------------- | ----------------- | -------------- |
+| **Light**  | `#FFFFFF`         | `#E0E0E0`               | `#000000`         | Clean, high-contrast, stark |
+| **Dark**   | `#161616`         | `#2C2C2C`               | `#E3E3E3`         | Deep, immersive, peaceful |
+| **Warm**   | `#FDFBF7`         | `#EBE5D9`               | `#3D2A1C`         | Cosy, organic, comforting |
+| **Cool**   | `#F4F7FB`         | `#DCE4F0`               | `#1C2D4A`         | Crisp, focused, fresh |
+| **Japandi**| `#E8E0D5`         | `#8C7B6B`               | `#2F2F2F`         | Wabi-sabi, zen, minimal warm |
+| **Cyberpunk**| `#0D0D0D`       | `#1A1A1A` (Neon borders)| `#00E5FF`         | Futuristic, gritty, dark city |
+| **Retro**  | `#E8A838`         | `#C75B3A`               | `#4A6741`         | 70s, groovy, warm vintage |
+| **Bauhaus**| `#D62828`         | `#1A3A8F`               | `#F7B731`         | Bold, primary, modernist |
+
 ### Extended Tokens
 
 | Token                      | Value                     | Usage                                  |
@@ -455,9 +470,8 @@ How tokens map to each Svelte component:
 ATELES DESIGN TOKENS — CHEAT SHEET
 
 COLORS (60-30-10)
-  60%  #FFFFFF  Background & canvas
-  30%  #E0E0E0  Cards & surfaces
-  10%  #000000  CTAs & emphasis
+  THEMES: Light, Dark, Warm, Cool, Japandi, Cyberpunk, Retro, Bauhaus
+  Ratio: 60% Dominant (Bg) · 30% Secondary (Surface) · 10% Accent (CTAs)
 
 FONT
   Elms Sans  300 · 400 · 500 · 600 · 700
@@ -475,4 +489,5 @@ BREAKPOINTS (mobile-first)
 
 ---
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-27*
+
