@@ -5,6 +5,7 @@
   import JournalView from "./JournalView.svelte";
   import Gallery from "./Gallery.svelte";
   import Auth from "./Auth.svelte";
+  import Onboarding from "./Onboarding.svelte";
   import {
     appState,
     activeTheme,
@@ -33,15 +34,16 @@
         console.error("Error fetching journal entries:", error.message);
       } else if (data) {
         const mappedEntries = data.map((item) => ({
-          id: Number(item.id),
+          id: item.id,
           title: item.title,
           content: item.content,
-          date: new Date(Number(item.id)).toLocaleDateString("en-US", {
+          created_at: item.created_at,
+          date: new Date(item.created_at).toLocaleDateString("en-US", {
             weekday: "short",
             month: "long",
             day: "numeric",
           }),
-          atelesData: item.ateles_data,
+          atelesData: item.visual_data,
         }));
         journalEntries.set(mappedEntries);
       }
@@ -60,7 +62,13 @@
     if (session) {
       currentUser.set(session.user);
       await fetchJournalEntries();
-      if ($appState === "auth") appState.set("home");
+      if ($appState === "auth") {
+        if (session.user.user_metadata?.username) {
+          appState.set("home");
+        } else {
+          appState.set("onboarding");
+        }
+      }
     } else {
       appState.set("auth");
     }
@@ -70,7 +78,13 @@
       if (session) {
         currentUser.set(session.user);
         await fetchJournalEntries();
-        if ($appState === "auth") appState.set("home");
+        if ($appState === "auth") {
+          if (session.user.user_metadata?.username) {
+            appState.set("home");
+          } else {
+            appState.set("onboarding");
+          }
+        }
       } else {
         currentUser.set(null);
         journalEntries.set([]);
@@ -129,6 +143,8 @@
 
   {#if $appState === "auth"}
     <Auth />
+  {:else if $appState === "onboarding"}
+    <Onboarding />
   {:else if $appState === "home"}
     <Home />
   {:else if $appState === "journal_input"}

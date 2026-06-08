@@ -12,44 +12,61 @@
     loading = true;
     errorMsg = '';
 
-    const entryId = Date.now();
     const entryData = {
-      id: entryId,
       user_id: $currentUser ? $currentUser.id : null,
       title: title || 'Untitled',
       content,
-      ateles_data: $currentAtelesData
+      visual_data: $currentAtelesData
     };
 
     if ($currentUser) {
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('journal_entries')
-          .insert(entryData);
+          .insert([entryData])
+          .select()
+          .single();
 
         if (error) {
-          console.error('Error saving journal entry:', error.message);
-          errorMsg = `Failed to save: ${error.message}`;
+          console.error('Error saving journal entry:', error);
+          errorMsg = `Failed to save: ${error.message || 'Unknown error'}`;
           loading = false;
           return;
         }
+
+        // Update local store chronologically with the database generated ID
+        const localEntry = {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          created_at: data.created_at || new Date().toISOString(),
+          date: new Date(data.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+          atelesData: data.visual_data
+        };
+        journalEntries.update(entries => [...entries, localEntry]);
+        loading = false;
+        appState.set('gallery');
+        return;
       } catch (err) {
         console.error('Unexpected error saving entry:', err);
         errorMsg = 'An unexpected error occurred while saving.';
         loading = false;
         return;
       }
+    } else {
+      // Fallback for non-authenticated testing
+      const localEntry = {
+        id: Date.now(),
+        title: entryData.title,
+        content: entryData.content,
+        created_at: new Date().toISOString(),
+        date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+        atelesData: entryData.ateles_data
+      };
+      journalEntries.update(entries => [...entries, localEntry]);
+      loading = false;
+      appState.set('gallery');
     }
-
-    // Update local store chronologically
-    const localEntry = {
-      id: entryId,
-      title: entryData.title,
-      content: entryData.content,
-      date: new Date(entryId).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
-      atelesData: entryData.ateles_data
-    };
-    journalEntries.update(entries => [...entries, localEntry]);
     loading = false;
     appState.set('gallery');
   }

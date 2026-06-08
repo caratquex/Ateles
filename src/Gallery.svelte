@@ -60,10 +60,10 @@
         </div>
         
         <div class="text-[1.1rem] font-medium text-text-primary mb-1">
-          {formatDay(entry.id)}
+          {formatDay(entry.created_at || entry.id)}
         </div>
         <div class="text-[0.8rem] text-text-secondary">
-          {formatDate(entry.id)}
+          {formatDate(entry.created_at || entry.id)}
         </div>
       </button>
     {/each}

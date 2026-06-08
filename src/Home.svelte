@@ -13,6 +13,7 @@
     { name: 'Bauhaus', colors: ['#F7B731', '#1A3A8F', '#D62828'] }
   ];
   let currentPaletteIndex = 0;
+  let activePalette = brushPalettes[currentPaletteIndex];
   $: activePalette = brushPalettes[currentPaletteIndex];
   
   function prevBrushPalette() {
@@ -114,9 +115,7 @@
   </div>
 </div>
 
-{#if false && enableCamera}
-  <HandTracker />
-{/if}
+
 
 <style>
   @keyframes fadeIn {
