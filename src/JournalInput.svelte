@@ -141,6 +141,7 @@
 
   .editor-card {
     flex: 1;
+    min-height: 0;
     max-height: 80vh;
     padding: var(--space-6);
     display: flex;
@@ -188,6 +189,7 @@
     display: flex;
     gap: var(--space-4);
     margin-top: auto;
+    flex-shrink: 0;
   }
 
   .action-btn {

@@ -19,7 +19,16 @@
   import { onMount } from "svelte";
 
   let menuOpen = false;
-  const themes = ["light", "dark", "warm", "cool", "japandi", "cyberpunk", "retro", "bauhaus"];
+  const themes = [
+    "light",
+    "dark",
+    "warm",
+    "cool",
+    "japandi",
+    "cyberpunk",
+    "retro",
+    "bauhaus",
+  ];
   let entriesLoading = false;
 
   async function fetchJournalEntries() {
@@ -128,16 +137,23 @@
   }
 </script>
 
-<main class="w-screen h-screen overflow-hidden relative">
+<main class="w-screen h-[100dvh] overflow-hidden relative">
   <P5Canvas />
 
   {#if entriesLoading}
-    <div 
+    <div
       class="absolute top-6 left-6 z-[100] flex items-center gap-2 px-4 py-2 pointer-events-none glass-panel"
       style="border-radius: var(--radius-pill); box-shadow: var(--shadow-sm);"
     >
-      <div class="w-2 h-2 animate-ping" style="background-color: var(--color-accent); border-radius: var(--radius-circle);"></div>
-      <span class="text-[0.75rem] font-semibold tracking-wider uppercase" style="color: var(--color-text-secondary); font-family: var(--font-family);">Syncing</span>
+      <div
+        class="w-2 h-2 animate-ping"
+        style="background-color: var(--color-accent); border-radius: var(--radius-circle);"
+      ></div>
+      <span
+        class="text-[0.75rem] font-semibold tracking-wider uppercase"
+        style="color: var(--color-text-secondary); font-family: var(--font-family);"
+        >Syncing</span
+      >
     </div>
   {/if}
 
