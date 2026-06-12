@@ -7,6 +7,7 @@
     isCameraActive,
     activeTheme,
     isFullscreenVisual,
+    fillMode
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
@@ -145,6 +146,36 @@
               : 'bg-transparent text-text-primary'}"
             on:click={() => strokeType.set("line")}>Line</button
           >
+        </div>
+
+        <div class="flex gap-2 mb-3 items-center justify-center">
+          <button
+            class="pointer-events-auto py-1 px-3 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+            'solid'
+              ? 'bg-surface-hover text-text-primary border-text-secondary'
+              : 'bg-transparent text-text-secondary'}"
+            on:click={() => fillMode.set('solid')}
+          >
+            Solid
+          </button>
+          <button
+            class="pointer-events-auto py-1 px-3 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+            'stroke'
+              ? 'bg-surface-hover text-text-primary border-text-secondary'
+              : 'bg-transparent text-text-secondary'}"
+            on:click={() => fillMode.set('stroke')}
+          >
+            Stroke
+          </button>
+          <button
+            class="pointer-events-auto py-1 px-3 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+            'gradient'
+              ? 'bg-surface-hover text-text-primary border-text-secondary'
+              : 'bg-transparent text-text-secondary'}"
+            on:click={() => fillMode.set('gradient')}
+          >
+            Gradient
+          </button>
         </div>
 
         <button

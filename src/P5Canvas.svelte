@@ -15,6 +15,7 @@
     journalEntries,
     clearCanvasTrigger,
     saveVisualTrigger,
+    fillMode,
   } from "./store.js";
 
   let canvasContainer;
@@ -29,6 +30,8 @@
     const unsubStroke = strokeType.subscribe((v) => (currentStrokeType = v));
     let currentStrokeColor = "#000000";
     const unsubColor = strokeColor.subscribe((v) => (currentStrokeColor = v));
+    let currentFillMode = "solid";
+    const unsubFillMode = fillMode.subscribe((v) => (currentFillMode = v));
     let currentCameraShake = 0;
     const unsubCameraShake = cameraShakeIntensity.subscribe(
       (v) => (currentCameraShake = v),
@@ -188,6 +191,7 @@
           color: currentStrokeColor,
           opacity: strokeOpacity,
           type: currentStrokeType === "line" ? "rect" : currentStrokeType,
+          fillMode: currentFillMode,
         });
       }
 
@@ -540,6 +544,7 @@
                 color: s.color,
                 opacity: s.opacity || 255,
                 type: s.type,
+                fillMode: s.fillMode || "solid",
                 id: s.id,
                 baseTargetX: s.baseTargetX,
                 baseTargetY: s.baseTargetY,
@@ -675,9 +680,36 @@
             p.translate(s.x, s.y);
             p.rotate(s.rot);
 
-            let c = p.color(s.color);
-            c.setAlpha(s.opacity || 255);
-            p.fill(c);
+            let mode = s.fillMode || "solid";
+            
+            if (mode === "solid") {
+              let c = p.color(s.color);
+              c.setAlpha(s.opacity || 255);
+              p.fill(c);
+              p.noStroke();
+            } else if (mode === "stroke") {
+              let c = p.color(s.color);
+              c.setAlpha(s.opacity || 255);
+              p.noFill();
+              p.stroke(c);
+              p.strokeWeight(p.map(s.opacity || 255, 10, 255, 1, 4));
+            } else if (mode === "gradient") {
+              p.noStroke();
+              let ctx = p.drawingContext;
+              // Create a linear gradient from top to bottom of the shape
+              let grad = ctx.createLinearGradient(0, -s.h/2, 0, s.h/2);
+              
+              let c1 = p.color(s.color);
+              c1.setAlpha(s.opacity || 255);
+              
+              let c2 = p.color(s.color);
+              c2.setAlpha(0); // Fade to transparent
+              
+              grad.addColorStop(0, c1.toString());
+              grad.addColorStop(1, c2.toString());
+              
+              ctx.fillStyle = grad;
+            }
 
             if (s.type === "rect") p.rect(0, 0, s.w, s.h, s.w * 0.1);
             else if (s.type === "ellipse") p.ellipse(0, 0, s.w, s.h);
@@ -731,6 +763,7 @@
       unsubState();
       unsubStroke();
       unsubColor();
+      unsubFillMode();
       unsubCameraShake();
       unsubLayout();
       unsubTheme();

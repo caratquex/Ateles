@@ -19,6 +19,9 @@ export const strokeType = writable('rect');
 // '#000000', '#888888', '#ffffff'
 export const strokeColor = writable('#000000');
 
+// 'solid', 'stroke', 'gradient'
+export const fillMode = writable('solid');
+
 
 
 // Journal entries
