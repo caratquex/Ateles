@@ -7,7 +7,6 @@
     visualPhase,
     strokeType,
     strokeColor,
-    strokeBlendMode,
     cameraShakeIntensity,
     journalLayout,
     activeTheme,
@@ -15,7 +14,7 @@
     activeEntryId,
     journalEntries,
     clearCanvasTrigger,
-    saveVisualTrigger
+    saveVisualTrigger,
   } from "./store.js";
 
   let canvasContainer;
@@ -30,8 +29,6 @@
     const unsubStroke = strokeType.subscribe((v) => (currentStrokeType = v));
     let currentStrokeColor = "#000000";
     const unsubColor = strokeColor.subscribe((v) => (currentStrokeColor = v));
-    let currentBlendMode = "blend";
-    const unsubBlendMode = strokeBlendMode.subscribe((v) => (currentBlendMode = v));
     let currentCameraShake = 0;
     const unsubCameraShake = cameraShakeIntensity.subscribe(
       (v) => (currentCameraShake = v),
@@ -52,7 +49,7 @@
     });
 
     let allEntries = [];
-    const unsubEntries = journalEntries.subscribe(v => (allEntries = v));
+    const unsubEntries = journalEntries.subscribe((v) => (allEntries = v));
     let unsubActiveEntry;
     let unsubClear;
 
@@ -80,7 +77,8 @@
       let originalShardCount = 0;
 
       let totalDrawDistance = 0;
-
+      let totalDrawDistX = 0;
+      let totalDrawDistY = 0;
       let maxShakeX = 0;
       let maxShakeY = 0;
 
@@ -90,35 +88,36 @@
         rotSpeed: 0.002,
         orbitXRatio: 1.0,
         orbitYRatio: 1.0,
-        breathingStyle: 'radial'
+        breathingStyle: "radial",
       };
 
-      unsubActiveEntry = activeEntryId.subscribe(v => {
+      unsubActiveEntry = activeEntryId.subscribe((v) => {
         if (v != null) {
-          let entry = allEntries.find(e => e.id === v);
+          let entry = allEntries.find((e) => e.id === v);
           if (entry && entry.atelesData) {
-             shards = entry.atelesData.shards.map(s => ({...s}));
-             bgHex = entry.atelesData.bgHex || bgHex;
-             visualParams = entry.atelesData.visualParams || {
-               breathingAmp: 2,
-               breathingFreq: 0.1,
-               rotSpeed: 0.002,
-               orbitXRatio: 1.0,
-               orbitYRatio: 1.0,
-               breathingStyle: 'radial'
-             };
-             strokeBlendMode.set(entry.atelesData.blendMode || 'blend');
-             visualPhase.set("bloom");
-             appState.set("journal_view");
+            shards = entry.atelesData.shards.map((s) => ({ ...s }));
+            bgHex = entry.atelesData.bgHex || bgHex;
+            visualParams = entry.atelesData.visualParams || {
+              breathingAmp: 2,
+              breathingFreq: 0.1,
+              rotSpeed: 0.002,
+              orbitXRatio: 1.0,
+              orbitYRatio: 1.0,
+              breathingStyle: "radial",
+            };
+            visualPhase.set("bloom");
+            appState.set("journal_view");
           }
         } else {
           // Reset when going back to home
           if (currentState === "home" || currentState === "gallery") {
-             shards = [];
-             maxShakeX = 0;
-             maxShakeY = 0;
-             totalDrawDistance = 0;
-             visualPhase.set("drawing");
+            shards = [];
+            totalDrawDistance = 0;
+            totalDrawDistX = 0;
+            totalDrawDistY = 0;
+            maxShakeX = 0;
+            maxShakeY = 0;
+            visualPhase.set("drawing");
           }
         }
       });
@@ -126,9 +125,11 @@
       unsubClear = clearCanvasTrigger.subscribe((v) => {
         if (v > 0) {
           shards = [];
+          totalDrawDistance = 0;
+          totalDrawDistX = 0;
+          totalDrawDistY = 0;
           maxShakeX = 0;
           maxShakeY = 0;
-          totalDrawDistance = 0;
           visualPhase.set("drawing");
         }
       });
@@ -150,16 +151,18 @@
         let len = prevPt ? p.dist(prevPt.x, prevPt.y, px, py) : 5;
         let rot = prevPt ? p.atan2(py - prevPt.y, px - prevPt.x) : 0;
 
-        let w = len + 2;
-        let h = p.random(2, 6);
+        let magnitude = p.constrain(len, 1, 50);
+        let strokeOpacity = p.map(magnitude, 1, 25, 255, 10);
+        let sizeMult = p.map(magnitude, 1, 25, 1.0, 0.1);
 
+        let w, h;
         if (currentStrokeType === "ellipse" || currentStrokeType === "rect") {
-          w = p.random(10, 25);
+          w = p.random(10, 25) * sizeMult;
           h = w;
           rot = p.random(p.TWO_PI);
-        } else if (currentStrokeType === "line") {
-          w = len + 5;
-          h = p.random(2, 6);
+        } else {
+          w = (len + 5) * sizeMult;
+          h = p.random(2, 6) * sizeMult;
         }
 
         shards.push({
@@ -183,6 +186,7 @@
           baseTargetY: py,
           baseTargetRot: rot,
           color: currentStrokeColor,
+          opacity: strokeOpacity,
           type: currentStrokeType === "line" ? "rect" : currentStrokeType,
         });
       }
@@ -203,6 +207,10 @@
         let d = p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y);
         if (d < MIN_DRAW_DIST) return;
 
+        let dx = Math.abs(pt.x - lastDrawPoint.x);
+        let dy = Math.abs(pt.y - lastDrawPoint.y);
+        totalDrawDistX += dx;
+        totalDrawDistY += dy;
         totalDrawDistance += d;
 
         // Interpolate for smooth, gap-free strokes
@@ -226,7 +234,7 @@
 
       // ── Mouse handlers (desktop) ──────────────────────
       p.mouseDragged = (event) => {
-        if (event && event.target && event.target.tagName !== 'CANVAS') return;
+        if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           addDrawPoints(p.mouseX, p.mouseY);
           return false; // prevent default only when drawing
@@ -234,13 +242,13 @@
       };
 
       p.mouseReleased = (event) => {
-        if (event && event.target && event.target.tagName !== 'CANVAS') return;
+        if (event && event.target && event.target.tagName !== "CANVAS") return;
         lastDrawPoint = null;
       };
 
       // ── Touch handlers (mobile) ───────────────────────
       p.touchStarted = (event) => {
-        if (event && event.target && event.target.tagName !== 'CANVAS') return;
+        if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null; // reset for new stroke
           if (p.touches.length > 0) {
@@ -251,7 +259,7 @@
       };
 
       p.touchMoved = (event) => {
-        if (event && event.target && event.target.tagName !== 'CANVAS') return;
+        if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           if (p.touches.length > 0) {
             addDrawPoints(p.touches[0].x, p.touches[0].y);
@@ -261,7 +269,7 @@
       };
 
       p.touchEnded = (event) => {
-        if (event && event.target && event.target.tagName !== 'CANVAS') return;
+        if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null;
           return false;
@@ -403,10 +411,26 @@
               slices = p.floor(p.map(maxShakeDuringBreak, 10, 80, 4, 16, true));
               if (slices % 2 !== 0) slices++; // Keep it even for better mirroring
 
-              // 2. Size and Spacing based on drawing magnitude
-              let dragMult = p.map(totalDrawDistance, 1000, 10000, 0.5, 2.5, true);
+              // 2. Spread/Spacing based on dragging distance
+              let spreadMult = p.map(
+                totalDrawDistance,
+                1000,
+                10000,
+                0.8,
+                2.5,
+                true,
+              );
 
-              // 3. Orbit Shape & Breathing Style based on Shake Direction
+              // 3. Aspect Ratio based on Dragging Direction
+              let dragRatioX = 1.0;
+              let dragRatioY = 1.0;
+              if (totalDrawDistance > 0) {
+                let hRatio = totalDrawDistX / (totalDrawDistX + totalDrawDistY);
+                dragRatioX = p.map(hRatio, 0, 1, 0.5, 2.0);
+                dragRatioY = p.map(hRatio, 0, 1, 2.0, 0.5);
+              }
+
+              // 4. Orbit Shape & Breathing Style based on Shake Direction
               let sRatioX = 1.0;
               let sRatioY = 1.0;
               let totalShakeDir = maxShakeX + maxShakeY;
@@ -414,20 +438,41 @@
                 let hShakeRatio = maxShakeX / totalShakeDir;
                 sRatioX = p.map(hShakeRatio, 0, 1, 0.6, 1.4);
                 sRatioY = p.map(hShakeRatio, 0, 1, 1.4, 0.6);
-                
+
                 if (hShakeRatio > 0.6) {
-                  visualParams.breathingStyle = 'tangential';
+                  visualParams.breathingStyle = "tangential";
                 } else {
-                  visualParams.breathingStyle = 'radial';
+                  visualParams.breathingStyle = "radial";
                 }
               }
               visualParams.orbitXRatio = sRatioX;
               visualParams.orbitYRatio = sRatioY;
 
               // 5. Animation parameters
-              visualParams.breathingAmp = p.map(maxShakeDuringBreak, 10, 80, 1.0, 4.0, true);
-              visualParams.breathingFreq = p.map(maxShakeDuringBreak, 10, 80, 0.05, 0.2, true);
-              visualParams.rotSpeed = p.map(maxShakeDuringBreak, 10, 80, 0.001, 0.008, true);
+              visualParams.breathingAmp = p.map(
+                maxShakeDuringBreak,
+                10,
+                80,
+                1.0,
+                4.0,
+                true,
+              );
+              visualParams.breathingFreq = p.map(
+                maxShakeDuringBreak,
+                10,
+                80,
+                0.05,
+                0.2,
+                true,
+              );
+              visualParams.rotSpeed = p.map(
+                maxShakeDuringBreak,
+                10,
+                80,
+                0.001,
+                0.008,
+                true,
+              );
 
               let baseSize = p.floor(shards.length / slices);
 
@@ -463,13 +508,19 @@
                   }
 
                   s.baseTargetX =
-                    (tx * p.cos(angle) - ty * p.sin(angle)) * scaleMult * dragMult * visualParams.orbitXRatio;
+                    (tx * p.cos(angle) - ty * p.sin(angle)) *
+                    scaleMult *
+                    spreadMult *
+                    visualParams.orbitXRatio;
                   s.baseTargetY =
-                    (tx * p.sin(angle) + ty * p.cos(angle)) * scaleMult * dragMult * visualParams.orbitYRatio;
+                    (tx * p.sin(angle) + ty * p.cos(angle)) *
+                    scaleMult *
+                    spreadMult *
+                    visualParams.orbitYRatio;
                   s.baseTargetRot = trot + angle;
 
-                  s.targetW = shards[k].originalW * scaleMult * dragMult;
-                  s.targetH = shards[k].originalH * scaleMult * dragMult;
+                  s.targetW = shards[k].originalW * scaleMult * dragRatioX;
+                  s.targetH = shards[k].originalH * scaleMult * dragRatioY;
                 }
               }
 
@@ -480,19 +531,28 @@
               }
 
               // Capture visual state
-              let exportedShards = shards.map(s => ({
-                 x: s.x, y: s.y, rot: s.rot,
-                 w: s.w, h: s.h, color: s.color, type: s.type,
-                 id: s.id,
-                 baseTargetX: s.baseTargetX, baseTargetY: s.baseTargetY, baseTargetRot: s.baseTargetRot,
-                 targetW: s.targetW, targetH: s.targetH,
-                 originalW: s.originalW, originalH: s.originalH
+              let exportedShards = shards.map((s) => ({
+                x: s.x,
+                y: s.y,
+                rot: s.rot,
+                w: s.w,
+                h: s.h,
+                color: s.color,
+                opacity: s.opacity || 255,
+                type: s.type,
+                id: s.id,
+                baseTargetX: s.baseTargetX,
+                baseTargetY: s.baseTargetY,
+                baseTargetRot: s.baseTargetRot,
+                targetW: s.targetW,
+                targetH: s.targetH,
+                originalW: s.originalW,
+                originalH: s.originalH,
               }));
               currentAtelesData.set({
-                 shards: exportedShards,
-                 bgHex: bgHex,
-                 visualParams: visualParams,
-                 blendMode: currentBlendMode
+                shards: exportedShards,
+                bgHex: bgHex,
+                visualParams: visualParams,
               });
             }
           } else {
@@ -501,21 +561,28 @@
         } else if (currentVisualPhase === "bloom") {
           let time = p.millis() * 0.001;
           for (let s of shards) {
-            let breathCycle = p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) * visualParams.breathingAmp;
+            let breathCycle =
+              p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) *
+              visualParams.breathingAmp;
             let angleFromCenter = p.atan2(s.baseTargetY, s.baseTargetX);
 
-            if (visualParams.breathingStyle === 'radial') {
+            if (visualParams.breathingStyle === "radial") {
               // Radial pumping
-              s.targetX = s.baseTargetX + p.cos(angleFromCenter) * breathCycle * 5;
-              s.targetY = s.baseTargetY + p.sin(angleFromCenter) * breathCycle * 5;
-              s.targetRot = s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.02;
+              s.targetX =
+                s.baseTargetX + p.cos(angleFromCenter) * breathCycle * 5;
+              s.targetY =
+                s.baseTargetY + p.sin(angleFromCenter) * breathCycle * 5;
+              s.targetRot =
+                s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.02;
             } else {
               // Tangential swirling
               let tangX = -p.sin(angleFromCenter);
               let tangY = p.cos(angleFromCenter);
               s.targetX = s.baseTargetX + tangX * breathCycle * 5;
               s.targetY = s.baseTargetY + tangY * breathCycle * 5;
-              s.targetRot = s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.1 * breathCycle;
+              s.targetRot =
+                s.baseTargetRot +
+                p.sin(time * 0.5 + s.id * 0.1) * 0.1 * breathCycle;
             }
           }
         }
@@ -602,20 +669,15 @@
         }
         p.rotate(globalRotation);
 
-        let p5BlendMode = p.BLEND;
-        if (currentBlendMode === 'multiply') p5BlendMode = p.MULTIPLY;
-        else if (currentBlendMode === 'screen') p5BlendMode = p.SCREEN;
-        else if (currentBlendMode === 'difference') p5BlendMode = p.DIFFERENCE;
-        else if (currentBlendMode === 'overlay') p5BlendMode = p.OVERLAY;
-        p.blendMode(p5BlendMode);
-
         for (let s of shards) {
           if (s.w > 0.5 && s.h > 0.5) {
             p.push();
             p.translate(s.x, s.y);
             p.rotate(s.rot);
 
-            p.fill(s.color);
+            let c = p.color(s.color);
+            c.setAlpha(s.opacity || 255);
+            p.fill(c);
 
             if (s.type === "rect") p.rect(0, 0, s.w, s.h, s.w * 0.1);
             else if (s.type === "ellipse") p.ellipse(0, 0, s.w, s.h);
@@ -630,8 +692,6 @@
             p.pop();
           }
         }
-
-        p.blendMode(p.BLEND);
 
         p.pop();
 
@@ -654,7 +714,7 @@
         }
 
         if (saveTriggered) {
-          p.saveCanvas('Ateles_Visual', 'png');
+          p.saveCanvas("Ateles_Visual", "png");
           saveTriggered = false;
         }
       };
@@ -671,7 +731,6 @@
       unsubState();
       unsubStroke();
       unsubColor();
-      unsubBlendMode();
       unsubCameraShake();
       unsubLayout();
       unsubTheme();

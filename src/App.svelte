@@ -14,6 +14,7 @@
     clearCanvasTrigger,
     currentUser,
     journalEntries,
+    isFullscreenVisual,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
@@ -149,78 +150,105 @@
         class="w-2 h-2 animate-ping"
         style="background-color: var(--color-accent); border-radius: var(--radius-circle);"
       ></div>
-      <span
-        class="text-[0.75rem] font-semibold tracking-wider uppercase"
-        style="color: var(--color-text-secondary); font-family: var(--font-family);"
-        >Syncing</span
-      >
     </div>
   {/if}
 
-  {#if $appState === "auth"}
-    <Auth />
-  {:else if $appState === "onboarding"}
-    <Onboarding />
-  {:else if $appState === "home"}
-    <Home />
-  {:else if $appState === "journal_input"}
-    <JournalInput />
-  {:else if $appState === "journal_view"}
-    <JournalView />
-  {:else if $appState === "gallery"}
-    <Gallery />
+  {#if !$isFullscreenVisual}
+    {#if $appState === "auth"}
+      <Auth />
+    {:else if $appState === "onboarding"}
+      <Onboarding />
+    {:else if $appState === "home"}
+      <Home />
+    {:else if $appState === "journal_input"}
+      <JournalInput />
+    {:else if $appState === "journal_view"}
+      <JournalView />
+    {:else if $appState === "gallery"}
+      <Gallery />
+    {/if}
   {/if}
 
-  <div class="absolute top-6 right-6 z-[100]">
-    <button
-      class="bg-transparent border-none text-text-primary cursor-pointer p-2 flex"
-      on:click={() => (menuOpen = !menuOpen)}
-    >
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+  {#if $isFullscreenVisual}
+    <div class="absolute top-6 left-6 z-[200]">
+      <button
+        class="bg-surface/50 backdrop-blur-sm border border-border text-text-primary p-2 rounded-circle cursor-pointer shadow-sm hover:bg-surface transition-all flex items-center justify-center"
+        on:click={() => isFullscreenVisual.set(false)}
+        title="Exit Fullscreen"
       >
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    </button>
-    {#if menuOpen}
-      <div
-        class="absolute top-full right-0 mt-2 bg-bg border border-border-default rounded-md shadow-md flex flex-col min-w-[150px] overflow-hidden"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-minimize-icon lucide-minimize"
+          ><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path
+            d="M21 8h-3a2 2 0 0 1-2-2V3"
+          /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path
+            d="M16 21v-3a2 2 0 0 1 2-2h3"
+          /></svg
+        >
+      </button>
+    </div>
+  {/if}
+
+  {#if !$isFullscreenVisual}
+    <div class="absolute top-6 right-6 z-[100]">
+      <button
+        class="bg-transparent border-none text-text-primary cursor-pointer p-2 flex"
+        on:click={() => (menuOpen = !menuOpen)}
       >
-        <button
-          class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-          on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-        <button
-          class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-          on:click={goHome}>Home</button
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      {#if menuOpen}
+        <div
+          class="absolute top-full right-0 mt-2 bg-bg border border-border-default rounded-md shadow-md flex flex-col min-w-[150px] overflow-hidden"
         >
-        <button
-          class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-          on:click={goGallery}>Gallery</button
-        >
-        <button
-          class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-          on:click={() => {
-            appState.set("journal_view");
-            menuOpen = false;
-          }}>Journal</button
-        >
-        {#if $currentUser}
           <button
-            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={handleLogout}>Log Out</button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
           >
-        {/if}
-      </div>
-    {/if}
-  </div>
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={goHome}>Home</button
+          >
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={goGallery}>Gallery</button
+          >
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={() => {
+              appState.set("journal_view");
+              menuOpen = false;
+            }}>Journal</button
+          >
+          {#if $currentUser}
+            <button
+              class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+              on:click={handleLogout}>Log Out</button
+            >
+          {/if}
+        </div>
+      {/if}
+    </div>
+  {/if}
 </main>
