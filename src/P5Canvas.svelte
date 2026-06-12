@@ -7,6 +7,7 @@
     visualPhase,
     strokeType,
     strokeColor,
+    strokeBlendMode,
     cameraShakeIntensity,
     journalLayout,
     activeTheme,
@@ -29,6 +30,8 @@
     const unsubStroke = strokeType.subscribe((v) => (currentStrokeType = v));
     let currentStrokeColor = "#000000";
     const unsubColor = strokeColor.subscribe((v) => (currentStrokeColor = v));
+    let currentBlendMode = "blend";
+    const unsubBlendMode = strokeBlendMode.subscribe((v) => (currentBlendMode = v));
     let currentCameraShake = 0;
     const unsubCameraShake = cameraShakeIntensity.subscribe(
       (v) => (currentCameraShake = v),
@@ -76,12 +79,35 @@
       let shakeCount = 0;
       let originalShardCount = 0;
 
+      let totalDrawDistance = 0;
+
+      let maxShakeX = 0;
+      let maxShakeY = 0;
+
+      let visualParams = {
+        breathingAmp: 2,
+        breathingFreq: 0.1,
+        rotSpeed: 0.002,
+        orbitXRatio: 1.0,
+        orbitYRatio: 1.0,
+        breathingStyle: 'radial'
+      };
+
       unsubActiveEntry = activeEntryId.subscribe(v => {
         if (v != null) {
           let entry = allEntries.find(e => e.id === v);
           if (entry && entry.atelesData) {
              shards = entry.atelesData.shards.map(s => ({...s}));
              bgHex = entry.atelesData.bgHex || bgHex;
+             visualParams = entry.atelesData.visualParams || {
+               breathingAmp: 2,
+               breathingFreq: 0.1,
+               rotSpeed: 0.002,
+               orbitXRatio: 1.0,
+               orbitYRatio: 1.0,
+               breathingStyle: 'radial'
+             };
+             strokeBlendMode.set(entry.atelesData.blendMode || 'blend');
              visualPhase.set("bloom");
              appState.set("journal_view");
           }
@@ -89,6 +115,9 @@
           // Reset when going back to home
           if (currentState === "home" || currentState === "gallery") {
              shards = [];
+             maxShakeX = 0;
+             maxShakeY = 0;
+             totalDrawDistance = 0;
              visualPhase.set("drawing");
           }
         }
@@ -97,6 +126,9 @@
       unsubClear = clearCanvasTrigger.subscribe((v) => {
         if (v > 0) {
           shards = [];
+          maxShakeX = 0;
+          maxShakeY = 0;
+          totalDrawDistance = 0;
           visualPhase.set("drawing");
         }
       });
@@ -170,6 +202,8 @@
 
         let d = p.dist(lastDrawPoint.x, lastDrawPoint.y, pt.x, pt.y);
         if (d < MIN_DRAW_DIST) return;
+
+        totalDrawDistance += d;
 
         // Interpolate for smooth, gap-free strokes
         let steps = Math.max(1, Math.floor(d / INTERP_STEP));
@@ -272,6 +306,8 @@
         ) {
           visualPhase.set("breaking");
           maxShakeDuringBreak = currentShake;
+          maxShakeX = Math.abs(p.accelerationX) || 0;
+          maxShakeY = Math.abs(p.accelerationY) || 0;
           calmFrames = 0;
           bloomProgress = 0;
           shakeCount = 1;
@@ -289,6 +325,8 @@
             // Reshake
             visualPhase.set("breaking");
             maxShakeDuringBreak = currentShake;
+            maxShakeX = Math.abs(p.accelerationX) || 0;
+            maxShakeY = Math.abs(p.accelerationY) || 0;
             calmFrames = 0;
             shakeCount++;
 
@@ -325,6 +363,8 @@
 
         if (currentVisualPhase === "breaking") {
           maxShakeDuringBreak = p.max(maxShakeDuringBreak, currentShake);
+          maxShakeX = p.max(maxShakeX, Math.abs(p.accelerationX) || 0);
+          maxShakeY = p.max(maxShakeY, Math.abs(p.accelerationY) || 0);
 
           // Apply chaotic force to shards
           let force = currentShake * 0.15;
@@ -358,7 +398,37 @@
               // Filter out dead shards permanently
               shards = shards.filter((s) => !s.isDead);
 
-              slices = p.random([4, 6, 8, 10, 12, 16]);
+              // Calculate visual parameters based on magnitude of interactions
+              // 1. Slices (Symmetry) based on shake magnitude
+              slices = p.floor(p.map(maxShakeDuringBreak, 10, 80, 4, 16, true));
+              if (slices % 2 !== 0) slices++; // Keep it even for better mirroring
+
+              // 2. Size and Spacing based on drawing magnitude
+              let dragMult = p.map(totalDrawDistance, 1000, 10000, 0.5, 2.5, true);
+
+              // 3. Orbit Shape & Breathing Style based on Shake Direction
+              let sRatioX = 1.0;
+              let sRatioY = 1.0;
+              let totalShakeDir = maxShakeX + maxShakeY;
+              if (totalShakeDir > 0) {
+                let hShakeRatio = maxShakeX / totalShakeDir;
+                sRatioX = p.map(hShakeRatio, 0, 1, 0.6, 1.4);
+                sRatioY = p.map(hShakeRatio, 0, 1, 1.4, 0.6);
+                
+                if (hShakeRatio > 0.6) {
+                  visualParams.breathingStyle = 'tangential';
+                } else {
+                  visualParams.breathingStyle = 'radial';
+                }
+              }
+              visualParams.orbitXRatio = sRatioX;
+              visualParams.orbitYRatio = sRatioY;
+
+              // 5. Animation parameters
+              visualParams.breathingAmp = p.map(maxShakeDuringBreak, 10, 80, 1.0, 4.0, true);
+              visualParams.breathingFreq = p.map(maxShakeDuringBreak, 10, 80, 0.05, 0.2, true);
+              visualParams.rotSpeed = p.map(maxShakeDuringBreak, 10, 80, 0.001, 0.008, true);
+
               let baseSize = p.floor(shards.length / slices);
 
               let scaleMult = p.map(
@@ -393,13 +463,13 @@
                   }
 
                   s.baseTargetX =
-                    (tx * p.cos(angle) - ty * p.sin(angle)) * scaleMult;
+                    (tx * p.cos(angle) - ty * p.sin(angle)) * scaleMult * dragMult * visualParams.orbitXRatio;
                   s.baseTargetY =
-                    (tx * p.sin(angle) + ty * p.cos(angle)) * scaleMult;
+                    (tx * p.sin(angle) + ty * p.cos(angle)) * scaleMult * dragMult * visualParams.orbitYRatio;
                   s.baseTargetRot = trot + angle;
 
-                  s.targetW = shards[k].originalW * scaleMult;
-                  s.targetH = shards[k].originalH * scaleMult;
+                  s.targetW = shards[k].originalW * scaleMult * dragMult;
+                  s.targetH = shards[k].originalH * scaleMult * dragMult;
                 }
               }
 
@@ -420,7 +490,9 @@
               }));
               currentAtelesData.set({
                  shards: exportedShards,
-                 bgHex: bgHex
+                 bgHex: bgHex,
+                 visualParams: visualParams,
+                 blendMode: currentBlendMode
               });
             }
           } else {
@@ -429,10 +501,22 @@
         } else if (currentVisualPhase === "bloom") {
           let time = p.millis() * 0.001;
           for (let s of shards) {
-            s.targetX = s.baseTargetX + p.sin(time + s.id * 0.1) * 2;
-            s.targetY = s.baseTargetY + p.cos(time + s.id * 0.1) * 2;
-            s.targetRot =
-              s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.02;
+            let breathCycle = p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) * visualParams.breathingAmp;
+            let angleFromCenter = p.atan2(s.baseTargetY, s.baseTargetX);
+
+            if (visualParams.breathingStyle === 'radial') {
+              // Radial pumping
+              s.targetX = s.baseTargetX + p.cos(angleFromCenter) * breathCycle * 5;
+              s.targetY = s.baseTargetY + p.sin(angleFromCenter) * breathCycle * 5;
+              s.targetRot = s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.02;
+            } else {
+              // Tangential swirling
+              let tangX = -p.sin(angleFromCenter);
+              let tangY = p.cos(angleFromCenter);
+              s.targetX = s.baseTargetX + tangX * breathCycle * 5;
+              s.targetY = s.baseTargetY + tangY * breathCycle * 5;
+              s.targetRot = s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.1 * breathCycle;
+            }
           }
         }
 
@@ -512,11 +596,18 @@
 
         // Global gentle rotation in bloom phase
         if (currentVisualPhase === "bloom") {
-          globalRotation += 0.002 + currentShake * 0.001;
+          globalRotation += visualParams.rotSpeed + currentShake * 0.001;
         } else {
           globalRotation = 0;
         }
         p.rotate(globalRotation);
+
+        let p5BlendMode = p.BLEND;
+        if (currentBlendMode === 'multiply') p5BlendMode = p.MULTIPLY;
+        else if (currentBlendMode === 'screen') p5BlendMode = p.SCREEN;
+        else if (currentBlendMode === 'difference') p5BlendMode = p.DIFFERENCE;
+        else if (currentBlendMode === 'overlay') p5BlendMode = p.OVERLAY;
+        p.blendMode(p5BlendMode);
 
         for (let s of shards) {
           if (s.w > 0.5 && s.h > 0.5) {
@@ -539,6 +630,8 @@
             p.pop();
           }
         }
+
+        p.blendMode(p.BLEND);
 
         p.pop();
 
@@ -578,6 +671,7 @@
       unsubState();
       unsubStroke();
       unsubColor();
+      unsubBlendMode();
       unsubCameraShake();
       unsubLayout();
       unsubTheme();

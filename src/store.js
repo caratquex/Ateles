@@ -16,6 +16,9 @@ export const visualPhase = writable('drawing');
 // 'ellipse', 'rect', 'line'
 export const strokeType = writable('rect');
 
+// 'blend', 'multiply', 'screen', 'difference'
+export const strokeBlendMode = writable('blend');
+
 // '#000000', '#888888', '#ffffff'
 export const strokeColor = writable('#000000');
 

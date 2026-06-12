@@ -1,5 +1,5 @@
 <script>
-  import { appState, visualPhase, strokeType, strokeColor, isCameraActive, activeTheme } from "./store.js";
+  import { appState, visualPhase, strokeType, strokeColor, isCameraActive, activeTheme, strokeBlendMode } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
   const brushPalettes = [
@@ -96,6 +96,14 @@
           <button class="pointer-events-auto py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'ellipse' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeType.set('ellipse')}>Round</button>
           <button class="pointer-events-auto py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'rect' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeType.set('rect')}>Square</button>
           <button class="pointer-events-auto py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'line' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeType.set('line')}>Line</button>
+        </div>
+
+        <div class="flex gap-3 mb-1 items-center justify-center flex-wrap max-w-[300px]">
+          <button class="pointer-events-auto py-1 px-3 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeBlendMode === 'blend' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeBlendMode.set('blend')}>Normal</button>
+          <button class="pointer-events-auto py-1 px-3 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeBlendMode === 'multiply' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeBlendMode.set('multiply')}>Multiply</button>
+          <button class="pointer-events-auto py-1 px-3 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeBlendMode === 'screen' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeBlendMode.set('screen')}>Screen</button>
+          <button class="pointer-events-auto py-1 px-3 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeBlendMode === 'overlay' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeBlendMode.set('overlay')}>Overlay</button>
+          <button class="pointer-events-auto py-1 px-3 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeBlendMode === 'difference' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}" on:click={() => strokeBlendMode.set('difference')}>Difference</button>
         </div>
 
         <button class="pointer-events-auto w-[200px] mt-2 py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover" on:click={doneDrawing}>Done</button>
