@@ -45,7 +45,7 @@
 </script>
 
 <div class="flex items-center justify-center h-full w-full bg-bg z-[200] absolute top-0 left-0">
-  <div class="bg-surface p-8 rounded-xl shadow-xl w-[400px] border border-border-default flex flex-col gap-4">
+  <div class="bg-surface p-6 sm:p-8 rounded-xl shadow-xl w-[400px] max-w-[90%] border border-border-default flex flex-col gap-4">
     <h1 class="text-text-primary text-2xl font-bold text-center mb-2">
       {isSignUp ? 'Create an Account' : 'Welcome to Ateles'}
     </h1>

@@ -2,7 +2,7 @@
   import { supabase } from "./lib/supabase.js";
   import { appState, currentUser } from "./store.js";
 
-  let step = 1; // 1 for username, 2 for question
+  let step = 1; // 1: Username, 2: Questionnaire, 3-5: Tutorial
   let username = "";
   let selectedAnswer = "";
   let customAnswer = "";
@@ -18,18 +18,28 @@
     "Other",
   ];
 
-  async function handleNext() {
+  function handleNext() {
     if (step === 1 && username.trim()) {
       step = 2;
+    } else if (step === 2 && selectedAnswer) {
+      if (selectedAnswer === "Other" && !customAnswer.trim()) return;
+      step = 3;
+    } else if (step === 3) {
+      step = 4;
+    } else if (step === 4) {
+      step = 5;
     }
   }
 
   async function handleSubmit() {
-    if (step === 2 && selectedAnswer) {
+    if (step === 5) {
       loading = true;
       errorMsg = "";
+      
+      // Transition immediately to prevent perceived lag
+      appState.set("home");
+
       try {
-        // We only save the username as requested, the answer is just for the experience
         const { data, error } = await supabase.auth.updateUser({
           data: {
             username: username.trim(),
@@ -37,16 +47,13 @@
         });
 
         if (error) {
-          errorMsg = error.message || "Error saving data. Please try again.";
-          loading = false;
-        } else {
-          if (data && data.user) {
-            currentUser.set(data.user);
-          }
-          appState.set("home");
+          console.error("Error saving data:", error.message);
+        } else if (data && data.user) {
+          currentUser.set(data.user);
         }
       } catch (err) {
-        errorMsg = err.message || "An unexpected error occurred.";
+        console.error("Unexpected error:", err.message);
+      } finally {
         loading = false;
       }
     }
@@ -57,7 +64,7 @@
   class="flex items-center justify-center h-full w-full bg-bg z-[200] absolute top-0 left-0"
 >
   <div
-    class="bg-surface p-8 rounded-xl shadow-xl w-[400px] max-w-[90%] border border-border-default flex flex-col gap-6"
+    class="bg-surface p-6 sm:p-8 rounded-xl shadow-xl w-[400px] max-w-[90%] border border-border-default flex flex-col gap-6 relative overflow-hidden"
   >
     {#if step === 1}
       <div class="flex flex-col gap-2">
@@ -70,17 +77,13 @@
       </div>
 
       {#if errorMsg}
-        <div
-          class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm"
-        >
+        <div class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm">
           {errorMsg}
         </div>
       {/if}
 
       <div class="flex flex-col gap-2">
-        <label for="username" class="text-text-secondary text-sm font-medium"
-          >Choose a Username</label
-        >
+        <label for="username" class="text-text-secondary text-sm font-medium">Choose a Username</label>
         <input
           id="username"
           type="text"
@@ -98,18 +101,11 @@
       >
         Continue
       </button>
+
     {:else if step === 2}
       <h1 class="text-text-primary text-xl font-bold mb-2">
         How would you describe yourself?
       </h1>
-
-      {#if errorMsg}
-        <div
-          class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm"
-        >
-          {errorMsg}
-        </div>
-      {/if}
 
       <div class="flex flex-col gap-3">
         {#each options as option}
@@ -121,10 +117,9 @@
               bind:group={selectedAnswer}
               class="mt-1 w-4 h-4 accent-text-primary cursor-pointer"
             />
-            <span
-              class="text-text-primary text-sm leading-snug group-hover:opacity-80 transition-opacity"
-              >{option}</span
-            >
+            <span class="text-text-primary text-sm leading-snug group-hover:opacity-80 transition-opacity">
+              {option}
+            </span>
           </label>
         {/each}
 
@@ -146,19 +141,140 @@
           Back
         </button>
         <button
+          on:click={handleNext}
+          disabled={!selectedAnswer || (selectedAnswer === "Other" && !customAnswer.trim())}
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+        >
+          Next
+        </button>
+      </div>
+
+    {:else if step === 3}
+      <h1 class="text-text-primary text-2xl font-bold text-center">
+        1. Draw your ego
+      </h1>
+      <div class="flex justify-center my-6 h-[100px] items-center">
+        <svg width="60" height="60" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="40" stroke="var(--color-text-primary)" stroke-width="8" fill="none" class="animate-draw" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+        </svg>
+      </div>
+      <p class="text-text-secondary text-center text-[1rem]">
+        Express your current state by drawing freely on the canvas.
+      </p>
+      <div class="flex justify-between mt-6">
+        <button
+          on:click={() => (step = 2)}
+          class="text-text-secondary hover:text-text-primary transition-colors text-sm font-medium px-4 py-2 bg-transparent border-none cursor-pointer"
+        >
+          Back
+        </button>
+        <button
+          on:click={handleNext}
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity cursor-pointer"
+        >
+          Next
+        </button>
+      </div>
+
+    {:else if step === 4}
+      <h1 class="text-text-primary text-2xl font-bold text-center">
+        2. Shake or Drag
+      </h1>
+      <div class="flex justify-center my-6 h-[100px] items-center">
+        <svg width="40" height="60" viewBox="0 0 40 60" class="animate-shake">
+          <rect x="5" y="5" width="30" height="50" rx="5" stroke="var(--color-text-primary)" stroke-width="4" fill="none" />
+          <line x1="15" y1="50" x2="25" y2="50" stroke="var(--color-text-primary)" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </div>
+      <p class="text-text-secondary text-center text-[1rem]">
+        Let go by shaking your device or dragging to shatter the drawing.
+      </p>
+      <div class="flex justify-between mt-6">
+        <button
+          on:click={() => (step = 3)}
+          class="text-text-secondary hover:text-text-primary transition-colors text-sm font-medium px-4 py-2 bg-transparent border-none cursor-pointer"
+        >
+          Back
+        </button>
+        <button
+          on:click={handleNext}
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity cursor-pointer"
+        >
+          Next
+        </button>
+      </div>
+
+    {:else if step === 5}
+      <h1 class="text-text-primary text-2xl font-bold text-center">
+        3. Create your Ateles
+      </h1>
+      <div class="flex justify-center my-6 h-[100px] items-center relative">
+        <div class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom"></div>
+        <div class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom-delayed"></div>
+      </div>
+      <p class="text-text-secondary text-center text-[1rem]">
+        Watch your ego transform into an Ateles, then write a journal entry.
+      </p>
+
+      {#if errorMsg}
+        <div class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm mt-4">
+          {errorMsg}
+        </div>
+      {/if}
+
+      <div class="flex justify-between mt-6">
+        <button
+          on:click={() => (step = 4)}
+          class="text-text-secondary hover:text-text-primary transition-colors text-sm font-medium px-4 py-2 bg-transparent border-none cursor-pointer"
+        >
+          Back
+        </button>
+        <button
           on:click={handleSubmit}
-          disabled={loading ||
-            !selectedAnswer ||
-            (selectedAnswer === "Other" && !customAnswer.trim())}
+          disabled={loading}
           class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
         >
           {#if loading}
-            Saving...
+            Starting...
           {:else}
-            Finish
+            Begin
           {/if}
         </button>
       </div>
     {/if}
   </div>
 </div>
+
+<style>
+  .animate-draw {
+    animation: draw 2.5s ease-in-out infinite;
+  }
+  @keyframes draw {
+    0% { stroke-dashoffset: 251.2; }
+    50% { stroke-dashoffset: 0; }
+    80% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+
+  .animate-shake {
+    animation: shake 1.5s ease-in-out infinite;
+  }
+  @keyframes shake {
+    0%, 100% { transform: rotate(0deg) translateX(0); }
+    10%, 30%, 50% { transform: rotate(10deg) translateX(4px); }
+    20%, 40%, 60% { transform: rotate(-10deg) translateX(-4px); }
+    70% { transform: rotate(0deg) translateX(0); }
+  }
+
+  .animate-bloom {
+    animation: bloom 2s ease-out infinite;
+  }
+  .animate-bloom-delayed {
+    animation: bloom 2s ease-out infinite 1s;
+    opacity: 0;
+  }
+  @keyframes bloom {
+    0% { transform: scale(0.5); opacity: 0.8; }
+    100% { transform: scale(4); opacity: 0; }
+  }
+</style>

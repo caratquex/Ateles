@@ -128,15 +128,15 @@
     </div>
   {/if}
 
-  <div class="fixed bottom-8 left-0 w-full flex justify-center gap-4 z-50">
+  <div class="fixed bottom-8 left-0 w-full flex flex-wrap justify-center gap-2 sm:gap-4 z-50 px-4">
     <button 
-      class="py-4 px-6 bg-surface text-text-primary rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
+      class="py-3 px-4 sm:py-4 sm:px-6 bg-surface text-text-primary rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
       on:click={saveVisual}
     >
       Save PNG
     </button>
     <button 
-      class="py-4 px-6 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
+      class="py-3 px-4 sm:py-4 sm:px-6 bg-accent text-text-inverse rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
       on:click={startNewAteles}
     >
       New Ateles
@@ -265,8 +265,13 @@
      ═══════════════════════════════════════════════════════ */
   .layout-2 .content {
     padding: 0 var(--page-padding-x);
-    padding-top: 46vh;
+    padding-top: 35vh;
     text-align: center;
+  }
+  @media (min-width: 48rem) {
+    .layout-2 .content {
+      padding-top: 46vh;
+    }
   }
 
   .layout-2 .title {

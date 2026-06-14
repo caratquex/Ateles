@@ -31,7 +31,7 @@
     {new Date().toLocaleDateString('en-US', { month: 'long' })}
   </h1>
   
-  <div class="grid grid-cols-3 gap-y-10 gap-x-4 px-6 max-w-[500px] mx-auto">
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-10 gap-x-4 px-4 sm:px-6 max-w-[500px] mx-auto">
     {#each $journalEntries as entry}
       <button 
         class="flex flex-col items-center bg-transparent border-none cursor-pointer group"

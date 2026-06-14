@@ -97,7 +97,7 @@
           Draw your ego
         </p>
 
-        <div class="flex gap-3 mb-1 items-center justify-center">
+        <div class="flex flex-wrap gap-2 sm:gap-3 mb-1 items-center justify-center">
           {#each activePalette.colors as color, i}
             <button
               aria-label="Color {i + 1}"
@@ -112,7 +112,7 @@
           {/each}
         </div>
 
-        <div class="flex items-center gap-4 mb-2 text-[1rem] font-medium">
+        <div class="flex items-center gap-2 sm:gap-4 mb-2 text-[1rem] font-medium">
           <button
             class="pointer-events-auto bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1"
             on:click={prevBrushPalette}>&lt;</button
@@ -124,7 +124,7 @@
           >
         </div>
 
-        <div class="flex gap-3 mb-1 items-center justify-center">
+        <div class="flex flex-wrap gap-2 sm:gap-3 mb-1 items-center justify-center">
           <button
             class="pointer-events-auto py-2 px-4 border border-accent rounded-pill text-[0.875rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
             'ellipse'
@@ -148,7 +148,7 @@
           >
         </div>
 
-        <div class="flex gap-2 mb-3 items-center justify-center">
+        <div class="flex flex-wrap gap-2 mb-3 items-center justify-center">
           <button
             class="pointer-events-auto py-1 px-3 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
             'solid'
@@ -179,7 +179,7 @@
         </div>
 
         <button
-          class="pointer-events-auto w-[200px] mt-2 py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover"
+          class="pointer-events-auto w-[200px] max-w-full mt-2 py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover"
           on:click={doneDrawing}>Done</button
         >
       </div>
