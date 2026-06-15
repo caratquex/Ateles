@@ -71,22 +71,26 @@
   }
 
   function handleTouchStart(e) {
+    if (e.target.closest('button')) return;
     if (e.touches.length === 1) {
       pointerDown(e.touches[0].clientX, e.touches[0].clientY);
     }
   }
 
   function handleTouchEnd(e) {
+    if (e.target.closest('button')) return;
     if (e.changedTouches.length === 1) {
       pointerUp(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     }
   }
 
   function handleMouseDown(e) {
+    if (e.target.closest('button')) return;
     pointerDown(e.clientX, e.clientY);
   }
 
   function handleMouseUp(e) {
+    if (e.target.closest('button')) return;
     pointerUp(e.clientX, e.clientY);
   }
 
