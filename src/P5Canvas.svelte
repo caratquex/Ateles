@@ -612,7 +612,7 @@
             jTargetScale = 1.4;
           } else if (currentJournalLayout === 2) {
             jTargetX = 0;
-            jTargetY = -p.height * 0.18;
+            jTargetY = -p.height * 0.25;
             jTargetScale = 0.8;
           } else if (currentJournalLayout === 3) {
             jTargetX = -p.width * 0.15;
@@ -732,13 +732,6 @@
           if (currentState === "journal_input") {
             let c = p.color(bgHex);
             c.setAlpha(200);
-            p.fill(c);
-            p.rectMode(p.CORNER);
-            p.rect(0, 0, p.width, p.height);
-          } else if (currentState === "journal_view") {
-            // Lighter overlay — let kaleidoscope show
-            let c = p.color(bgHex);
-            c.setAlpha(150);
             p.fill(c);
             p.rectMode(p.CORNER);
             p.rect(0, 0, p.width, p.height);

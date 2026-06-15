@@ -43,7 +43,7 @@ export const clearCanvasTrigger = writable(0);
 export const saveVisualTrigger = writable(0);
 
 // Journal view layout variant (0, 1, 2)
-export const journalLayout = writable(0);
+export const journalLayout = writable(2);
 
 // Current shaking intensity/state
 export const shakeIntensity = writable(0);

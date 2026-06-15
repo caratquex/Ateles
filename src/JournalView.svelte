@@ -98,18 +98,51 @@
   function startNewAteles() {
     activeEntryId.set(null);
     clearCanvasTrigger.update(v => v + 1);
-    journalLayout.set(0);
+    journalLayout.set(2);
     appState.set("home");
   }
 
   function saveVisual() {
     saveVisualTrigger.update(v => v + 1);
   }
+
+  async function handleShare() {
+    const canvas = document.querySelector('.p5-container canvas');
+    if (!canvas) {
+      saveVisual();
+      return;
+    }
+
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error("Could not create image blob");
+
+      const file = new File([blob], "Ateles_Visual.png", { type: "image/png" });
+      const titleText = entry && entry.title ? entry.title : "My Ateles";
+      const shareData = {
+        title: titleText,
+        text: `Check out my ego transformation: ${titleText} - created with Ateles!`,
+        files: [file]
+      };
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to standard download if file sharing is unsupported
+        saveVisual();
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      // Fallback to standard download on error or cancellation
+      saveVisual();
+    }
+  }
 </script>
 
 <div
   class="view-container layout-{$journalLayout}"
   in:fade={{ duration: 500 }}
+  role="presentation"
   on:touchstart={handleTouchStart}
   on:touchend={handleTouchEnd}
   on:mousedown={handleMouseDown}
@@ -131,9 +164,9 @@
   <div class="fixed bottom-8 left-0 w-full flex flex-wrap justify-center gap-2 sm:gap-4 z-50 px-4">
     <button 
       class="py-3 px-4 sm:py-4 sm:px-6 bg-surface text-text-primary rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
-      on:click={saveVisual}
+      on:click={handleShare}
     >
-      Save PNG
+      Share
     </button>
     <button 
       class="py-3 px-4 sm:py-4 sm:px-6 bg-accent text-text-inverse rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
@@ -265,12 +298,12 @@
      ═══════════════════════════════════════════════════════ */
   .layout-2 .content {
     padding: 0 var(--page-padding-x);
-    padding-top: 35vh;
+    padding-top: 50vh;
     text-align: center;
   }
   @media (min-width: 48rem) {
     .layout-2 .content {
-      padding-top: 46vh;
+      padding-top: 60vh;
     }
   }
 

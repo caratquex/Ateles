@@ -10,7 +10,7 @@
   function startNewAteles() {
     activeEntryId.set(null);
     clearCanvasTrigger.update(v => v + 1);
-    journalLayout.set(0);
+    journalLayout.set(2);
     appState.set('home');
   }
 
@@ -26,7 +26,7 @@
   }
 </script>
 
-<div class="absolute top-0 left-0 w-full min-h-screen bg-bg overflow-y-auto pt-[100px] pb-10 z-[25] animate-[fadeIn_0.5s_ease]">
+<div class="absolute top-0 left-0 w-full h-full bg-bg overflow-y-auto pt-[100px] pb-32 z-[25] animate-[fadeIn_0.5s_ease]">
   <h1 class="text-center text-[1.5rem] font-medium text-text-primary mb-8 tracking-wide">
     {new Date().toLocaleDateString('en-US', { month: 'long' })}
   </h1>
