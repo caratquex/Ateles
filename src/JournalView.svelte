@@ -10,7 +10,8 @@
     journalLayout,
     activeEntryId,
     clearCanvasTrigger,
-    saveVisualTrigger
+    saveVisualTrigger,
+    isFullscreenVisual
   } from "./store.js";
 
   $: entry = $activeEntryId 
@@ -89,21 +90,59 @@
     pointerUp(e.clientX, e.clientY);
   }
 
+  function goHome() {
+    activeEntryId.set(null);
+    appState.set("home");
+  }
+
   function startNewAteles() {
     activeEntryId.set(null);
     clearCanvasTrigger.update(v => v + 1);
-    journalLayout.set(0);
+    journalLayout.set(2);
     appState.set("home");
   }
 
   function saveVisual() {
     saveVisualTrigger.update(v => v + 1);
   }
+
+  async function handleShare() {
+    const canvas = document.querySelector('.p5-container canvas');
+    if (!canvas) {
+      saveVisual();
+      return;
+    }
+
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error("Could not create image blob");
+
+      const file = new File([blob], "Ateles_Visual.png", { type: "image/png" });
+      const titleText = entry && entry.title ? entry.title : "My Ateles";
+      const shareData = {
+        title: titleText,
+        text: `Check out my ego transformation: ${titleText} - created with Ateles!`,
+        files: [file]
+      };
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to standard download if file sharing is unsupported
+        saveVisual();
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      // Fallback to standard download on error or cancellation
+      saveVisual();
+    }
+  }
 </script>
 
 <div
   class="view-container layout-{$journalLayout}"
   in:fade={{ duration: 500 }}
+  role="presentation"
   on:touchstart={handleTouchStart}
   on:touchend={handleTouchEnd}
   on:mousedown={handleMouseDown}
@@ -122,20 +161,28 @@
     </div>
   {/if}
 
-  <div class="fixed bottom-8 left-0 w-full flex justify-center gap-4 z-50">
+  <div class="fixed bottom-8 left-0 w-full flex flex-wrap justify-center gap-2 sm:gap-4 z-50 px-4">
     <button 
-      class="py-4 px-8 bg-surface text-text-primary rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
-      on:click={saveVisual}
+      class="py-3 px-4 sm:py-4 sm:px-6 bg-surface text-text-primary rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
+      on:click={handleShare}
     >
-      Save PNG
+      Share
     </button>
     <button 
-      class="py-4 px-8 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
+      class="py-3 px-4 sm:py-4 sm:px-6 bg-accent text-text-inverse rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
       on:click={startNewAteles}
     >
       New Ateles
     </button>
   </div>
+
+  <button
+    class="pointer-events-auto absolute top-6 left-6 z-[100] bg-surface/50 backdrop-blur-sm border border-border text-text-primary p-2 rounded-circle cursor-pointer shadow-sm hover:bg-surface transition-all flex items-center justify-center"
+    on:click={() => isFullscreenVisual.set(true)}
+    title="View Fullscreen"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-fullscreen-icon lucide-fullscreen"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>
+  </button>
 </div>
 
 <style>
@@ -251,8 +298,13 @@
      ═══════════════════════════════════════════════════════ */
   .layout-2 .content {
     padding: 0 var(--page-padding-x);
-    padding-top: 46vh;
+    padding-top: 50vh;
     text-align: center;
+  }
+  @media (min-width: 48rem) {
+    .layout-2 .content {
+      padding-top: 60vh;
+    }
   }
 
   .layout-2 .title {
