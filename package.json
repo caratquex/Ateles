@@ -18,7 +18,9 @@
     "vite": "^8.0.10"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.8",
     "@supabase/supabase-js": "^2.106.2",
-    "p5": "^1.9.0"
+    "p5": "^1.9.0",
+    "pretext-flow": "^0.2.0"
   }
 }

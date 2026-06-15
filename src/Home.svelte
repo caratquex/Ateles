@@ -7,7 +7,10 @@
     isCameraActive,
     activeTheme,
     isFullscreenVisual,
-    fillMode
+    fillMode,
+    activeEntryId,
+    clearCanvasTrigger,
+    journalLayout
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
@@ -70,6 +73,12 @@
 
   function doneDrawing() {
     visualPhase.set("ready_to_shake");
+  }
+
+  function startNewAteles() {
+    activeEntryId.set(null);
+    clearCanvasTrigger.update(v => v + 1);
+    journalLayout.set(2);
   }
 </script>
 
@@ -202,14 +211,22 @@
         class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
         style="font-size: var(--font-body-lg); margin-bottom: var(--space-3); text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);"
       >
-        Shake to change.
+        Great
       </p>
-      <button
-        class="pointer-events-auto py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.2rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-all duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
-        on:click={enterJournal}
-      >
-        Write Journal
-      </button>
+      <div class="flex flex-col gap-3 w-full items-center opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]">
+        <button
+          class="pointer-events-auto w-[220px] max-w-[90vw] py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-transform duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover"
+          on:click={enterJournal}
+        >
+          Write journal
+        </button>
+        <button
+          class="pointer-events-auto w-[220px] max-w-[90vw] py-3 px-8 bg-surface text-text-primary rounded-pill text-[1.1rem] font-medium tracking-[0.02em] border border-solid border-border cursor-pointer shadow-sm transition-transform duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover"
+          on:click={startNewAteles}
+        >
+          New Ateles
+        </button>
+      </div>
     {/if}
   </div>
 </div>
