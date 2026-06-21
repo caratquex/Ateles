@@ -18,6 +18,7 @@
     fillMode,
     strokeSize,
     strokeOpacity,
+    hasDrawing,
   } from "./store.js";
 
   let canvasContainer;
@@ -48,12 +49,12 @@
     );
 
     let bgHex = "#FFFFFF";
+    let borderHex = "rgba(0, 0, 0, 0.10)";
     const unsubTheme = activeTheme.subscribe((v) => {
       setTimeout(() => {
-        bgHex =
-          getComputedStyle(document.documentElement)
-            .getPropertyValue("--color-bg")
-            .trim() || "#FFFFFF";
+        const style = getComputedStyle(document.documentElement);
+        bgHex = style.getPropertyValue("--color-bg").trim() || "#FFFFFF";
+        borderHex = style.getPropertyValue("--color-border-strong").trim() || "rgba(0, 0, 0, 0.20)";
       }, 50);
     });
 
@@ -127,6 +128,7 @@
             maxShakeX = 0;
             maxShakeY = 0;
             visualPhase.set("drawing");
+            hasDrawing.set(false);
           }
         }
       });
@@ -140,6 +142,7 @@
           maxShakeX = 0;
           maxShakeY = 0;
           visualPhase.set("drawing");
+          hasDrawing.set(false);
         }
       });
 
@@ -157,6 +160,7 @@
       const INTERP_STEP = 4;
 
       function createShard(px, py, prevPt) {
+        hasDrawing.set(true);
         let len = prevPt ? p.dist(prevPt.x, prevPt.y, px, py) : 5;
         let rot = prevPt ? p.atan2(py - prevPt.y, px - prevPt.x) : 0;
 
@@ -291,6 +295,23 @@
           p.clear();
         } else {
           p.background(bgHex);
+
+          // Draw notebook dot grid background
+          p.push();
+          let dotColor = p.color(borderHex);
+          // Set opacity to make it look subtle and elegant
+          dotColor.setAlpha(80);
+          p.fill(dotColor);
+          p.noStroke();
+          
+          let spacing = 24;
+          let dotSize = 2.0;
+          for (let x = spacing / 2; x < p.width; x += spacing) {
+            for (let y = spacing / 2; y < p.height; y += spacing) {
+              p.ellipse(x, y, dotSize, dotSize);
+            }
+          }
+          p.pop();
         }
 
         // Physics / Shake detection

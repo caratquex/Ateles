@@ -59,3 +59,11 @@ export const isCameraActive = writable(false);
 
 // Fullscreen mode for viewing the visual without UI
 export const isFullscreenVisual = writable(false);
+
+// Tracks if there is active drawing on the canvas
+export const hasDrawing = writable(false);
+
+// Triggers for bottom-row action buttons in journal editor
+export const journalSaveTrigger = writable(0);
+export const journalCancelTrigger = writable(0);
+

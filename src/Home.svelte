@@ -15,7 +15,6 @@
     strokeOpacity,
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
-  import { Pen, BookOpen } from "lucide-svelte";
 
   const brushPalettes = [
     { name: "Monochrome", colors: ["#000000", "#888888", "#ffffff"] },
@@ -70,9 +69,6 @@
     }
   }
 
-  function enterJournal() {
-    appState.set("journal_input");
-  }
 
   let showBrushSettings = false;
 
@@ -87,10 +83,20 @@
     clearCanvasTrigger.update((v) => v + 1);
     journalLayout.set(2);
   }
+
+  const currentDate = new Date();
+  const yearStr = currentDate.getFullYear();
+  const dayMonthStr = currentDate
+    .toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    })
+    .replace(",", " |");
 </script>
 
 <div
-  class="absolute top-10 left-0 w-full h-full z-10 flex flex-col justify-end items-center pb-[max(15vh,64px)] pointer-events-none"
+  class="absolute top-10 left-0 w-full h-full z-10 flex flex-col justify-end items-center pb-[108px] pointer-events-none"
 >
   <div class="text-center flex flex-col gap-5 items-center w-[90%] mx-auto">
     {#if needsPermission}
@@ -103,28 +109,42 @@
     {/if}
 
     {#if $visualPhase === "drawing"}
-      <!-- Floating Instruction at the top of the canvas area -->
-      <div class="absolute top-16 left-0 w-full text-center pointer-events-none animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]">
-        <p
-          class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default"
+      <!-- Floating Date Header at the top of the canvas area -->
+      <div
+        class="absolute top-10 left-0 w-full text-center pointer-events-none animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)] flex flex-col gap-1"
+      >
+        <h1
+          class="text-[2.25rem] font-medium tracking-tight text-text-primary m-0"
           style="text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);"
         >
-          Draw your ego
+          {yearStr}
+        </h1>
+        <p
+          class="text-[0.95rem] font-normal text-text-secondary m-0"
+          style="text-shadow: 0 0 10px var(--color-overlay), 0 0 20px var(--color-overlay);"
+        >
+          {dayMonthStr}
         </p>
       </div>
 
       <!-- Settings Drawer Card -->
-      {#if showBrushSettings}
-        <div
-          class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards]"
-        >
+      <div class="drawing-controls-wrapper">
+        {#if showBrushSettings}
+          <div
+            class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards] mb-3"
+          >
           <!-- Header -->
-          <div class="flex justify-between items-center border-b border-border pb-2">
-            <span class="text-[0.75rem] font-bold tracking-wider uppercase text-text-secondary">Brush Settings</span>
-            <button 
+          <div
+            class="flex justify-between items-center border-b border-border pb-2"
+          >
+            <span
+              class="text-[0.75rem] font-bold tracking-wider uppercase text-text-secondary"
+              >Brush Settings</span
+            >
+            <button
               aria-label="Close settings"
-              class="bg-transparent border-none text-text-secondary hover:text-text-primary cursor-pointer p-1 flex items-center justify-center rounded-circle hover:bg-surface transition-colors" 
-              on:click={() => showBrushSettings = false}
+              class="bg-transparent border-none text-text-secondary hover:text-text-primary cursor-pointer p-1 flex items-center justify-center rounded-circle hover:bg-surface transition-colors"
+              on:click={() => (showBrushSettings = false)}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -145,15 +165,23 @@
 
           <!-- Palette Selection -->
           <div class="flex flex-col gap-1.5 text-left">
-            <span class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider">Palette</span>
-            <div class="flex items-center justify-between bg-surface/30 rounded-pill px-3 py-1 border border-border">
+            <span
+              class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+              >Palette</span
+            >
+            <div
+              class="flex items-center justify-between bg-surface/30 rounded-pill px-3 py-1 border border-border"
+            >
               <button
                 class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
                 on:click={prevBrushPalette}
               >
                 &lt;
               </button>
-              <span class="text-[0.875rem] font-medium text-text-primary min-w-[80px] text-center">{activePalette.name}</span>
+              <span
+                class="text-[0.875rem] font-medium text-text-primary min-w-[80px] text-center"
+                >{activePalette.name}</span
+              >
               <button
                 class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
                 on:click={nextBrushPalette}
@@ -165,22 +193,34 @@
 
           <!-- Stroke Selection -->
           <div class="flex flex-col gap-1.5 text-left">
-            <span class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider">Stroke Type</span>
+            <span
+              class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+              >Stroke Type</span
+            >
             <div class="grid grid-cols-3 gap-2">
               <button
-                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'ellipse' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}"
+                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                'ellipse'
+                  ? 'bg-accent text-text-inverse'
+                  : 'bg-transparent text-text-primary'}"
                 on:click={() => strokeType.set("ellipse")}
               >
                 Round
               </button>
               <button
-                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'rect' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}"
+                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                'rect'
+                  ? 'bg-accent text-text-inverse'
+                  : 'bg-transparent text-text-primary'}"
                 on:click={() => strokeType.set("rect")}
               >
                 Square
               </button>
               <button
-                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType === 'line' ? 'bg-accent text-text-inverse' : 'bg-transparent text-text-primary'}"
+                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                'line'
+                  ? 'bg-accent text-text-inverse'
+                  : 'bg-transparent text-text-primary'}"
                 on:click={() => strokeType.set("line")}
               >
                 Line
@@ -190,22 +230,34 @@
 
           <!-- Fill Selection -->
           <div class="flex flex-col gap-1.5 text-left">
-            <span class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider">Fill Mode</span>
+            <span
+              class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+              >Fill Mode</span
+            >
             <div class="grid grid-cols-3 gap-2">
               <button
-                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode === 'solid' ? 'bg-surface-hover text-text-primary border-text-secondary' : 'bg-transparent text-text-secondary'}"
+                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+                'solid'
+                  ? 'bg-surface-hover text-text-primary border-text-secondary'
+                  : 'bg-transparent text-text-secondary'}"
                 on:click={() => fillMode.set("solid")}
               >
                 Solid
               </button>
               <button
-                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode === 'stroke' ? 'bg-surface-hover text-text-primary border-text-secondary' : 'bg-transparent text-text-secondary'}"
+                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+                'stroke'
+                  ? 'bg-surface-hover text-text-primary border-text-secondary'
+                  : 'bg-transparent text-text-secondary'}"
                 on:click={() => fillMode.set("stroke")}
               >
                 Stroke
               </button>
               <button
-                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode === 'gradient' ? 'bg-surface-hover text-text-primary border-text-secondary' : 'bg-transparent text-text-secondary'}"
+                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+                'gradient'
+                  ? 'bg-surface-hover text-text-primary border-text-secondary'
+                  : 'bg-transparent text-text-secondary'}"
                 on:click={() => fillMode.set("gradient")}
               >
                 Gradient
@@ -216,8 +268,13 @@
           <!-- Brush Size Slider -->
           <div class="flex flex-col gap-1.5 text-left">
             <div class="flex justify-between items-center">
-              <span class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider">Size</span>
-              <span class="text-[0.75rem] font-medium text-text-secondary">{Math.round($strokeSize * 100)}%</span>
+              <span
+                class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+                >Size</span
+              >
+              <span class="text-[0.75rem] font-medium text-text-secondary"
+                >{Math.round($strokeSize * 100)}%</span
+              >
             </div>
             <input
               type="range"
@@ -232,8 +289,13 @@
           <!-- Brush Opacity Slider -->
           <div class="flex flex-col gap-1.5 text-left">
             <div class="flex justify-between items-center">
-              <span class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider">Opacity</span>
-              <span class="text-[0.75rem] font-medium text-text-secondary">{Math.round($strokeOpacity * 100)}%</span>
+              <span
+                class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+                >Opacity</span
+              >
+              <span class="text-[0.75rem] font-medium text-text-secondary"
+                >{Math.round($strokeOpacity * 100)}%</span
+              >
             </div>
             <input
               type="range"
@@ -249,13 +311,15 @@
 
       <!-- Floating Bottom Control Bar -->
       <div
-        class="flex items-center gap-3 px-4 py-2 bg-surface/80 backdrop-blur-md border border-border rounded-pill shadow-md pointer-events-auto transition-transform duration-normal ease-default hover:scale-[1.02] opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
+        class="drawing-bar flex items-center gap-3 px-4 py-2 rounded-pill pointer-events-auto transition-transform duration-normal ease-default hover:scale-[1.02] opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
       >
         <!-- Settings Button -->
         <button
           aria-label="Brush Settings"
-          class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1.5 flex items-center justify-center rounded-circle hover:bg-surface-hover transition-colors {showBrushSettings ? 'text-accent bg-surface-hover scale-110' : ''}"
-          on:click={() => showBrushSettings = !showBrushSettings}
+          class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1.5 flex items-center justify-center rounded-circle hover:bg-surface-hover transition-colors {showBrushSettings
+            ? 'text-accent bg-surface-hover scale-110'
+            : ''}"
+          on:click={() => (showBrushSettings = !showBrushSettings)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -298,35 +362,8 @@
             </button>
           {/each}
         </div>
-
-        <!-- Divider -->
-        <div class="w-[1px] h-5 bg-border"></div>
-
-        <!-- Done Button -->
-        <button
-          class="py-1.5 px-4 bg-accent text-text-inverse rounded-pill text-[0.875rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-sm hover:shadow-md transition-all hover:opacity-90"
-          on:click={doneDrawing}
-        >
-          Done
-        </button>
       </div>
-
-      <!-- Navigation Buttons -->
-      <div class="flex items-center justify-center gap-4 mt-4 pointer-events-auto opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]">
-        <button
-          class="bg-surface/80 hover:bg-surface text-text-primary flex items-center justify-center w-12 h-12 rounded-full transition-transform duration-normal ease-default hover:scale-[1.05] shadow-sm border border-border backdrop-blur-md cursor-pointer"
-          aria-label="Draw"
-        >
-          <Pen size={20} />
-        </button>
-        <button
-          on:click={() => appState.set('journal_view')}
-          class="bg-surface/80 hover:bg-surface text-text-secondary hover:text-text-primary flex items-center justify-center w-12 h-12 rounded-full transition-transform duration-normal ease-default hover:scale-[1.05] shadow-sm border border-border backdrop-blur-md cursor-pointer"
-          aria-label="Journal"
-        >
-          <BookOpen size={20} />
-        </button>
-      </div>
+    </div>
     {:else if $visualPhase === "ready_to_shake"}
       <p
         class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
@@ -348,51 +385,11 @@
       >
         Great
       </p>
-      <div
-        class="flex flex-col gap-3 w-full items-center opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
-      >
-        <button
-          class="pointer-events-auto w-[220px] max-w-[90vw] py-3 px-8 bg-accent text-text-inverse rounded-pill text-[1.1rem] font-medium tracking-[0.02em] border-none cursor-pointer shadow-md transition-transform duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover"
-          on:click={enterJournal}
-        >
-          Write journal
-        </button>
-        <button
-          class="pointer-events-auto w-[220px] max-w-[90vw] py-3 px-8 bg-[#ffffff] text-text-primary rounded-pill text-[1.1rem] font-medium tracking-[0.02em] border border-solid border-border cursor-pointer shadow-sm transition-transform duration-normal ease-default hover:-translate-y-[2px] hover:shadow-hover"
-          on:click={startNewAteles}
-        >
-          New Ateles
-        </button>
-      </div>
     {/if}
   </div>
 </div>
 
-{#if $visualPhase === "bloom"}
-  <button
-    class="pointer-events-auto absolute top-6 left-6 z-[100] bg-surface/50 backdrop-blur-sm border border-border text-text-primary p-2 rounded-circle cursor-pointer shadow-sm hover:bg-surface transition-all flex items-center justify-center"
-    on:click={() => isFullscreenVisual.set(true)}
-    title="View Fullscreen"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="lucide lucide-fullscreen-icon lucide-fullscreen"
-      ><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path
-        d="M17 3h2a2 2 0 0 1 2 2v2"
-      /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path
-        d="M7 21H5a2 2 0 0 1-2-2v-2"
-      /><rect width="10" height="8" x="7" y="8" rx="1" /></svg
-    >
-  </button>
-{/if}
+
 
 <style>
   @keyframes fadeIn {
@@ -454,5 +451,31 @@
   }
   input[type="range"]::-moz-range-thumb:hover {
     transform: scale(1.2);
+  }
+
+  .drawing-bar {
+    background: color-mix(in srgb, var(--color-glass) 60%, transparent);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .drawing-controls-wrapper {
+    position: fixed;
+    bottom: 96px; /* Safely clears bottom-row navbar (24px bottom + 56px height + 16px gap) */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: 90vw;
+    pointer-events: none;
+  }
+
+  .drawing-controls-wrapper > * {
+    pointer-events: auto;
   }
 </style>

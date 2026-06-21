@@ -15,9 +15,13 @@
     currentUser,
     journalEntries,
     isFullscreenVisual,
+    hasDrawing,
+    journalSaveTrigger,
+    journalCancelTrigger,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
+  import { LayoutGrid, Pen, Check, BookOpen, Share2, X, Maximize, Trash2 } from "lucide-svelte";
 
   let menuOpen = false;
   const themes = [
@@ -131,6 +135,60 @@
     menuOpen = false;
   }
 
+  async function handleShare() {
+    const canvas = document.querySelector(".p5-container canvas");
+    if (!canvas) {
+      return;
+    }
+
+    try {
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/png"),
+      );
+      if (!blob) throw new Error("Could not create image blob");
+
+      const file = new File([blob], "Ateles_Visual.png", { type: "image/png" });
+      
+      let activeTitle = "My Ateles";
+      const unsubActive = activeEntryId.subscribe(id => {
+        const unsubEntries = journalEntries.subscribe(entries => {
+          const entry = entries.find(e => e.id === id);
+          if (entry && entry.title) activeTitle = entry.title;
+        });
+        unsubEntries();
+      });
+      unsubActive();
+
+      const shareData = {
+        title: activeTitle,
+        text: `Check out my ego transformation: ${activeTitle} - created with Ateles!`,
+        files: [file],
+      };
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share(shareData);
+      } else {
+        const link = document.createElement("a");
+        link.download = "Ateles_Visual.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      const link = document.createElement("a");
+      link.download = "Ateles_Visual.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  }
+
+  function handleStartOver() {
+    activeEntryId.set(null);
+    clearCanvasTrigger.update((v) => v + 1);
+    visualPhase.set("drawing");
+    hasDrawing.set(false);
+  }
+
   $: {
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-theme", $activeTheme);
@@ -138,7 +196,16 @@
   }
 </script>
 
-<main class="w-screen h-[100dvh] overflow-hidden relative">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<main 
+  class="w-screen h-[100dvh] overflow-hidden relative"
+  on:click={() => {
+    if ($isFullscreenVisual) {
+      isFullscreenVisual.set(false);
+    }
+  }}
+>
   <P5Canvas />
 
   {#if entriesLoading}
@@ -169,37 +236,10 @@
     {/if}
   {/if}
 
-  {#if $isFullscreenVisual}
-    <div class="absolute top-6 left-6 z-[200]">
-      <button
-        class="bg-surface/50 backdrop-blur-sm border border-border text-text-primary p-2 rounded-circle cursor-pointer shadow-sm hover:bg-surface transition-all flex items-center justify-center"
-        on:click={() => isFullscreenVisual.set(false)}
-        title="Exit Fullscreen"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-minimize-icon lucide-minimize"
-          ><path d="M8 3v3a2 2 0 0 1-2 2H3" /><path
-            d="M21 8h-3a2 2 0 0 1-2-2V3"
-          /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path
-            d="M16 21v-3a2 2 0 0 1 2-2h3"
-          /></svg
-        >
-      </button>
-    </div>
-  {/if}
-
   {#if !$isFullscreenVisual}
     <div class="absolute top-6 right-6 z-[100]">
       <button
+        aria-label="Toggle Menu"
         class="bg-transparent border-none text-text-primary cursor-pointer p-2 flex"
         on:click={() => (menuOpen = !menuOpen)}
       >
@@ -251,4 +291,289 @@
       {/if}
     </div>
   {/if}
+
+  {#if $appState !== "auth" && $appState !== "onboarding" && !$isFullscreenVisual && $visualPhase !== "breaking"}
+    <div class="bottom-row">
+      <!-- Left side buttons -->
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "journal_view"}
+        on:click|stopPropagation={() => appState.set("journal_input")}
+        aria-label="Edit Journal"
+      >
+        <Pen size={18} />
+      </button>
+
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "journal_input"}
+        on:click|stopPropagation={() => journalCancelTrigger.update(n => n + 1)}
+        aria-label="Cancel"
+      >
+        <X size={18} />
+      </button>
+
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "home" && $visualPhase === "bloom"}
+        on:click|stopPropagation={handleStartOver}
+        aria-label="Start Over"
+      >
+        <Trash2 size={18} />
+      </button>
+
+      <!-- Center Navbar -->
+      <div class="bottom-nav" class:compact={$appState === "journal_view" || $appState === "journal_input"}>
+        <button
+          class="nav-btn"
+          class:active={$appState === "gallery" || $appState === "journal_view" || $appState === "journal_input"}
+          on:click|stopPropagation={() => {
+            if ($appState === "journal_input") {
+              journalCancelTrigger.update(n => n + 1);
+            } else {
+              activeEntryId.set(null);
+              appState.set("gallery");
+            }
+          }}
+        >
+          <LayoutGrid size={18} />
+          <span>Gallery</span>
+        </button>
+        {#if $appState === "home" && $visualPhase === "drawing" && $hasDrawing}
+          <button
+            class="nav-btn active"
+            on:click|stopPropagation={() => {
+              visualPhase.set("ready_to_shake");
+            }}
+          >
+            <Check size={18} />
+            <span>Done</span>
+          </button>
+        {:else if $appState === "home" && $visualPhase === "bloom"}
+          <button
+            class="nav-btn active"
+            on:click|stopPropagation={() => {
+              appState.set("journal_input");
+            }}
+          >
+            <BookOpen size={18} />
+            <span>Journal</span>
+          </button>
+        {:else}
+          <button
+            class="nav-btn"
+            class:active={$appState === "home"}
+            on:click|stopPropagation={() => {
+              if ($appState === "journal_input") {
+                journalCancelTrigger.update(n => n + 1);
+              } else {
+                appState.set("home");
+              }
+            }}
+          >
+            <Pen size={18} />
+            <span>Ateles</span>
+          </button>
+        {/if}
+      </div>
+
+      <!-- Right side buttons -->
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "journal_view"}
+        on:click|stopPropagation={handleShare}
+        aria-label="Share Journal"
+      >
+        <Share2 size={18} />
+      </button>
+
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "journal_view" || ($appState === "home" && $visualPhase === "bloom")}
+        on:click|stopPropagation={() => isFullscreenVisual.set(true)}
+        aria-label="View Fullscreen"
+      >
+        <Maximize size={18} />
+      </button>
+
+      <button
+        class="nav-icon-btn active-accent"
+        class:show={$appState === "journal_input"}
+        on:click|stopPropagation={() => journalSaveTrigger.update(n => n + 1)}
+        aria-label="Done"
+      >
+        <Check size={18} />
+      </button>
+    </div>
+  {/if}
 </main>
+
+<style>
+  .bottom-row {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 100;
+    width: max-content;
+    max-width: 95vw;
+    pointer-events: none;
+  }
+
+  .bottom-row > * {
+    pointer-events: auto;
+  }
+
+  .bottom-nav {
+    width: 240px;
+    height: 56px;
+    background: var(--color-glass);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.4s ease;
+  }
+
+  .bottom-nav.compact {
+    width: 130px;
+  }
+
+  .bottom-nav .nav-btn span {
+    max-width: 100px;
+    opacity: 1;
+    transition: max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  .bottom-nav.compact .nav-btn span {
+    max-width: 0;
+    opacity: 0;
+  }
+
+  .bottom-nav.compact .nav-btn {
+    gap: 0;
+  }
+
+  .nav-btn {
+    flex: 1;
+    height: 48px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-family: var(--font-family);
+    font-size: var(--font-body-sm);
+    font-weight: var(--weight-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .nav-btn:hover:not(.active) {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+  }
+
+  .nav-btn.active {
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-icon-btn {
+    height: 56px;
+    width: 0;
+    opacity: 0;
+    transform: scale(0);
+    pointer-events: none;
+    border: 0 solid transparent;
+    background: var(--color-glass);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    transition: 
+      width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.3s ease,
+      border-color 0.3s ease,
+      background-color 0.25s ease,
+      box-shadow 0.4s ease;
+    overflow: hidden;
+  }
+
+  .nav-icon-btn.show {
+    width: 56px;
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-circle);
+  }
+
+  .nav-icon-btn:hover {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+  }
+
+  .nav-icon-btn.active-accent {
+    background: var(--color-accent);
+    color: var(--color-text-inverse);
+    border-color: var(--color-accent);
+  }
+
+  .nav-icon-btn.active-accent:hover {
+    background: var(--color-accent);
+    opacity: 0.95;
+    color: var(--color-text-inverse);
+  }
+
+  @media (max-width: 480px) {
+    .bottom-nav {
+      width: 180px;
+    }
+    .bottom-nav.compact {
+      width: 110px;
+    }
+    .bottom-row {
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .bottom-nav {
+      width: 110px;
+    }
+    .bottom-nav.compact {
+      width: 100px;
+    }
+    .bottom-nav .nav-btn span {
+      display: none !important;
+    }
+    .bottom-row {
+      gap: 6px;
+    }
+  }
+</style>
