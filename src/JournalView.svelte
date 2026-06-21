@@ -13,6 +13,7 @@
     saveVisualTrigger,
     isFullscreenVisual
   } from "./store.js";
+  import { BookOpen, LayoutGrid } from "lucide-svelte";
 
   $: entry = $activeEntryId 
     ? $journalEntries.find(e => e.id === $activeEntryId) 
@@ -165,9 +166,9 @@
     </div>
   {/if}
 
-  <div class="fixed bottom-8 left-0 w-full flex flex-wrap justify-center gap-2 sm:gap-4 z-50 px-4">
+  <div class="fixed bottom-24 left-0 w-full flex flex-wrap justify-center gap-2 sm:gap-4 z-50 px-4">
     <button 
-      class="py-3 px-4 sm:py-4 sm:px-6 bg-surface text-text-primary rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
+      class="py-3 px-4 sm:py-4 sm:px-6 bg-[#ffffff] text-text-primary rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
       on:click={handleShare}
     >
       Share
@@ -177,6 +178,23 @@
       on:click={startNewAteles}
     >
       New Ateles
+    </button>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="fixed bottom-8 left-0 w-full flex items-center justify-center gap-4 z-50 px-4 pointer-events-auto">
+    <button
+      class="bg-surface/80 hover:bg-surface text-text-primary flex items-center justify-center w-12 h-12 rounded-full transition-transform duration-normal ease-default hover:scale-[1.05] shadow-sm border border-border backdrop-blur-md cursor-pointer"
+      aria-label="Journal"
+    >
+      <BookOpen size={20} />
+    </button>
+    <button
+      on:click={() => appState.set('gallery')}
+      class="bg-surface/80 hover:bg-surface text-text-secondary hover:text-text-primary flex items-center justify-center w-12 h-12 rounded-full transition-transform duration-normal ease-default hover:scale-[1.05] shadow-sm border border-border backdrop-blur-md cursor-pointer"
+      aria-label="Gallery"
+    >
+      <LayoutGrid size={20} />
     </button>
   </div>
 

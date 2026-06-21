@@ -19,6 +19,12 @@ export const strokeType = writable('rect');
 // '#000000', '#888888', '#ffffff'
 export const strokeColor = writable('#000000');
 
+// Brush size multiplier (0.2 to 3.0)
+export const strokeSize = writable(1.0);
+
+// Brush opacity multiplier (0.1 to 1.0)
+export const strokeOpacity = writable(1.0);
+
 // 'solid', 'stroke', 'gradient'
 export const fillMode = writable('solid');
 

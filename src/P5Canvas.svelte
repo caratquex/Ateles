@@ -16,6 +16,8 @@
     clearCanvasTrigger,
     saveVisualTrigger,
     fillMode,
+    strokeSize,
+    strokeOpacity,
   } from "./store.js";
 
   let canvasContainer;
@@ -30,6 +32,10 @@
     const unsubStroke = strokeType.subscribe((v) => (currentStrokeType = v));
     let currentStrokeColor = "#000000";
     const unsubColor = strokeColor.subscribe((v) => (currentStrokeColor = v));
+    let currentStrokeSize = 1.0;
+    const unsubStrokeSize = strokeSize.subscribe((v) => (currentStrokeSize = v));
+    let currentStrokeOpacity = 1.0;
+    const unsubStrokeOpacity = strokeOpacity.subscribe((v) => (currentStrokeOpacity = v));
     let currentFillMode = "solid";
     const unsubFillMode = fillMode.subscribe((v) => (currentFillMode = v));
     let currentCameraShake = 0;
@@ -155,8 +161,8 @@
         let rot = prevPt ? p.atan2(py - prevPt.y, px - prevPt.x) : 0;
 
         let magnitude = p.constrain(len, 1, 50);
-        let strokeOpacity = p.map(magnitude, 1, 25, 255, 10);
-        let sizeMult = p.map(magnitude, 1, 25, 1.0, 0.1);
+        let strokeOpacity = p.map(magnitude, 1, 25, 255, 10) * currentStrokeOpacity;
+        let sizeMult = p.map(magnitude, 1, 25, 1.0, 0.1) * currentStrokeSize;
 
         let w, h;
         if (currentStrokeType === "ellipse" || currentStrokeType === "rect") {
@@ -756,6 +762,8 @@
       unsubState();
       unsubStroke();
       unsubColor();
+      unsubStrokeSize();
+      unsubStrokeOpacity();
       unsubFillMode();
       unsubCameraShake();
       unsubLayout();
