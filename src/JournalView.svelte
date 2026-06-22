@@ -143,6 +143,16 @@
       saveVisual();
     }
   }
+
+  let scrollTop = 0;
+  let contentEl;
+  $: solidOpacity = Math.min(scrollTop / 150, 0.85);
+  $: {
+    if (($journalLayout !== undefined || $activeEntryId !== undefined) && contentEl) {
+      contentEl.scrollTop = 0;
+      scrollTop = 0;
+    }
+  }
 </script>
 
 <div
@@ -155,8 +165,11 @@
   on:mouseup|stopPropagation={handleMouseUp}
   on:click|stopPropagation
 >
+  <div class="gradient-overlay"></div>
+  <div class="solid-overlay" style="opacity: {solidOpacity};"></div>
+
   {#if entry}
-    <div class="content">
+    <div class="content" bind:this={contentEl} on:scroll={(e) => scrollTop = e.target.scrollTop}>
       <h1 class="title">{entry.title}</h1>
       <p class="date">{entry.date}</p>
       <p class="body-text">{entry.content}</p>
@@ -186,7 +199,39 @@
     flex-direction: column;
   }
 
+  .gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Gradient from bottom (fully opaque background color) to middle (transparent) */
+    background: linear-gradient(
+      to top,
+      var(--color-bg) 0%,
+      var(--color-bg) 35%,
+      transparent 65%
+    );
+    pointer-events: none;
+    z-index: 1;
+    transition: background var(--duration-slow) var(--easing-out);
+  }
+
+  .solid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-bg);
+    pointer-events: none;
+    z-index: 1;
+    transition: background-color var(--duration-slow) var(--easing-out);
+  }
+
   .content {
+    position: relative;
+    z-index: 2;
     transition: all var(--duration-slow) var(--easing-out);
     max-height: 85vh;
     overflow-y: auto;
@@ -211,6 +256,7 @@
     opacity: 0.6;
     pointer-events: none;
     transition: opacity var(--duration-slow) var(--easing-default);
+    z-index: 2;
   }
 
   /* ── Typography ─────────────────────────────────────── */

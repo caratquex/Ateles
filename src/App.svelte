@@ -69,6 +69,7 @@
   }
 
   onMount(async () => {
+
     // Check initial session
     const {
       data: { session },
@@ -135,8 +136,67 @@
     menuOpen = false;
   }
 
+  async function captureCombinedCanvas() {
+    const p5Canvas = document.querySelector(".p5-container canvas");
+    if (!p5Canvas) return null;
+
+    const cssWidth = window.innerWidth;
+    const cssHeight = window.innerHeight;
+    const canvasWidth = p5Canvas.width;
+    const canvasHeight = p5Canvas.height;
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = canvasWidth;
+    outCanvas.height = canvasHeight;
+    const ctx = outCanvas.getContext("2d");
+
+    ctx.drawImage(p5Canvas, 0, 0, canvasWidth, canvasHeight);
+
+    const viewContainer = document.querySelector(".view-container");
+    if (!viewContainer) return outCanvas;
+
+    let styles = "";
+    document.querySelectorAll("style").forEach(s => {
+      styles += s.innerHTML + "\n";
+    });
+    styles = styles.replace(/url\([^)]+\)/g, "none");
+
+    const serializer = new XMLSerializer();
+    const clone = viewContainer.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+    clone.style.width = cssWidth + "px";
+    clone.style.height = cssHeight + "px";
+
+    const hint = clone.querySelector(".hint");
+    if (hint) hint.remove();
+    const solidOverlay = clone.querySelector(".solid-overlay");
+    if (solidOverlay) solidOverlay.style.opacity = "0";
+
+    const xhtml = serializer.serializeToString(clone);
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cssWidth}" height="${cssHeight}">
+      <` + `style><![CDATA[\n${styles}\n]]></` + `style>
+      <foreignObject width="100%" height="100%">${xhtml}</foreignObject>
+    </svg>`;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+        URL.revokeObjectURL(url);
+        resolve(outCanvas);
+      };
+      img.onerror = () => {
+        resolve(outCanvas);
+      };
+      img.src = url;
+    });
+  }
+
   async function handleShare() {
-    const canvas = document.querySelector(".p5-container canvas");
+    const canvas = await captureCombinedCanvas();
     if (!canvas) {
       return;
     }
