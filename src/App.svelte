@@ -21,7 +21,7 @@
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
-  import { LayoutGrid, Pen, Check, BookOpen, Share2, X, Maximize, Trash2 } from "lucide-svelte";
+  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2 } from "lucide-svelte";
 
   let menuOpen = false;
   const themes = [
@@ -334,13 +334,6 @@
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
             on:click={goGallery}>Gallery</button
           >
-          <button
-            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={() => {
-              appState.set("journal_view");
-              menuOpen = false;
-            }}>Journal</button
-          >
           {#if $currentUser}
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
@@ -361,7 +354,7 @@
         on:click|stopPropagation={() => appState.set("journal_input")}
         aria-label="Edit Journal"
       >
-        <Pen size={18} />
+        <Edit size={18} />
       </button>
 
       <button

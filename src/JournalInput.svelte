@@ -17,6 +17,10 @@
   let unsubCancel;
 
   onMount(() => {
+    // Reset triggers to prevent immediate redirection from historical values
+    journalSaveTrigger.set(0);
+    journalCancelTrigger.set(0);
+
     if (entryId) {
       const entry = $journalEntries.find(e => e.id === entryId);
       if (entry) {
@@ -207,6 +211,9 @@
       triggerAutosave();
     }
   }
+
+  $: wordCount = content ? content.trim().split(/\s+/).filter(Boolean).length : 0;
+  $: charCount = content ? content.length : 0;
 </script>
 
 <div class="journal-container" in:fade={{ duration: 500 }}>
@@ -234,13 +241,20 @@
       placeholder="Title of your day..." 
       bind:value={title} 
       disabled={loading}
+      maxlength="100"
     />
     <textarea 
       class="content-input" 
       placeholder="Reflect on your thoughts here..." 
       bind:value={content}
       disabled={loading}
+      maxlength="2500"
     ></textarea>
+    <div class="editor-footer">
+      <span class="counter-text {charCount >= 2200 ? (charCount >= 2500 ? 'at-limit' : 'near-limit') : ''}">
+        {wordCount} {wordCount === 1 ? 'word' : 'words'} &nbsp;•&nbsp; {charCount.toLocaleString()}/2,500 chars
+      </span>
+    </div>
   </div>
 </div>
 
@@ -326,6 +340,40 @@
   }
   .content-input::-webkit-scrollbar {
     display: none;
+  }
+
+  .editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-2);
+    margin-top: auto;
+    font-size: var(--font-caption);
+    flex-shrink: 0;
+  }
+
+  .counter-text {
+    color: var(--color-text-tertiary);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color var(--duration-normal) var(--easing-default);
+  }
+
+  .counter-text.near-limit {
+    color: #D97706;
+  }
+
+  .counter-text.at-limit {
+    color: #DC2626;
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
   }
 
   .title-input::placeholder, .content-input::placeholder {
