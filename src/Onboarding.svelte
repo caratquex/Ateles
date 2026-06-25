@@ -35,7 +35,7 @@
     if (step === 5) {
       loading = true;
       errorMsg = "";
-      
+
       // Transition immediately to prevent perceived lag
       appState.set("home");
 
@@ -77,13 +77,17 @@
       </div>
 
       {#if errorMsg}
-        <div class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm">
+        <div
+          class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm"
+        >
           {errorMsg}
         </div>
       {/if}
 
       <div class="flex flex-col gap-2">
-        <label for="username" class="text-text-secondary text-sm font-medium">Choose a Username</label>
+        <label for="username" class="text-text-secondary text-sm font-medium"
+          >Choose a Username</label
+        >
         <input
           id="username"
           type="text"
@@ -101,7 +105,6 @@
       >
         Continue
       </button>
-
     {:else if step === 2}
       <h1 class="text-text-primary text-xl font-bold mb-2">
         How would you describe yourself?
@@ -117,7 +120,9 @@
               bind:group={selectedAnswer}
               class="mt-1 w-4 h-4 accent-text-primary cursor-pointer"
             />
-            <span class="text-text-primary text-sm leading-snug group-hover:opacity-80 transition-opacity">
+            <span
+              class="text-text-primary text-sm leading-snug group-hover:opacity-80 transition-opacity"
+            >
               {option}
             </span>
           </label>
@@ -142,20 +147,31 @@
         </button>
         <button
           on:click={handleNext}
-          disabled={!selectedAnswer || (selectedAnswer === "Other" && !customAnswer.trim())}
+          disabled={!selectedAnswer ||
+            (selectedAnswer === "Other" && !customAnswer.trim())}
           class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
         >
           Next
         </button>
       </div>
-
     {:else if step === 3}
       <h1 class="text-text-primary text-2xl font-bold text-center">
         1. Draw your ego
       </h1>
       <div class="flex justify-center my-6 h-[100px] items-center">
         <svg width="60" height="60" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="40" stroke="var(--color-text-primary)" stroke-width="8" fill="none" class="animate-draw" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            stroke="var(--color-text-primary)"
+            stroke-width="8"
+            fill="none"
+            class="animate-draw"
+            stroke-linecap="round"
+            stroke-dasharray="251.2"
+            stroke-dashoffset="251.2"
+          />
         </svg>
       </div>
       <p class="text-text-secondary text-center text-[1rem]">
@@ -175,15 +191,31 @@
           Next
         </button>
       </div>
-
     {:else if step === 4}
       <h1 class="text-text-primary text-2xl font-bold text-center">
         2. Shake or Drag
       </h1>
       <div class="flex justify-center my-6 h-[100px] items-center">
         <svg width="40" height="60" viewBox="0 0 40 60" class="animate-shake">
-          <rect x="5" y="5" width="30" height="50" rx="5" stroke="var(--color-text-primary)" stroke-width="4" fill="none" />
-          <line x1="15" y1="50" x2="25" y2="50" stroke="var(--color-text-primary)" stroke-width="2" stroke-linecap="round" />
+          <rect
+            x="5"
+            y="5"
+            width="30"
+            height="50"
+            rx="5"
+            stroke="var(--color-text-primary)"
+            stroke-width="4"
+            fill="none"
+          />
+          <line
+            x1="15"
+            y1="50"
+            x2="25"
+            y2="50"
+            stroke="var(--color-text-primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
         </svg>
       </div>
       <p class="text-text-secondary text-center text-[1rem]">
@@ -203,21 +235,26 @@
           Next
         </button>
       </div>
-
     {:else if step === 5}
       <h1 class="text-text-primary text-2xl font-bold text-center">
         3. Create your Ateles
       </h1>
       <div class="flex justify-center my-6 h-[100px] items-center relative">
-        <div class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom"></div>
-        <div class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom-delayed"></div>
+        <div
+          class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom"
+        ></div>
+        <div
+          class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom-delayed"
+        ></div>
       </div>
       <p class="text-text-secondary text-center text-[1rem]">
         Watch your ego transform into an Ateles, then write a journal entry.
       </p>
 
       {#if errorMsg}
-        <div class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm mt-4">
+        <div
+          class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm mt-4"
+        >
           {errorMsg}
         </div>
       {/if}
@@ -250,20 +287,43 @@
     animation: draw 2.5s ease-in-out infinite;
   }
   @keyframes draw {
-    0% { stroke-dashoffset: 251.2; }
-    50% { stroke-dashoffset: 0; }
-    80% { stroke-dashoffset: 0; opacity: 1; }
-    100% { stroke-dashoffset: 0; opacity: 0; }
+    0% {
+      stroke-dashoffset: 251.2;
+    }
+    50% {
+      stroke-dashoffset: 0;
+    }
+    80% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
   }
 
   .animate-shake {
     animation: shake 1.5s ease-in-out infinite;
   }
   @keyframes shake {
-    0%, 100% { transform: rotate(0deg) translateX(0); }
-    10%, 30%, 50% { transform: rotate(10deg) translateX(4px); }
-    20%, 40%, 60% { transform: rotate(-10deg) translateX(-4px); }
-    70% { transform: rotate(0deg) translateX(0); }
+    0%,
+    100% {
+      transform: rotate(0deg) translateX(0);
+    }
+    10%,
+    30%,
+    50% {
+      transform: rotate(10deg) translateX(4px);
+    }
+    20%,
+    40%,
+    60% {
+      transform: rotate(-10deg) translateX(-4px);
+    }
+    70% {
+      transform: rotate(0deg) translateX(0);
+    }
   }
 
   .animate-bloom {
@@ -274,7 +334,13 @@
     opacity: 0;
   }
   @keyframes bloom {
-    0% { transform: scale(0.5); opacity: 0.8; }
-    100% { transform: scale(4); opacity: 0; }
+    0% {
+      transform: scale(0.5);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
   }
 </style>

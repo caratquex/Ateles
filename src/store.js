@@ -16,6 +16,9 @@ export const visualPhase = writable('drawing');
 // 'ellipse', 'rect', 'line'
 export const strokeType = writable('rect');
 
+// custom character for stamp_char
+export const stampChar = writable('A');
+
 // '#000000', '#888888', '#ffffff'
 export const strokeColor = writable('#000000');
 

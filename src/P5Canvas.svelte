@@ -19,6 +19,7 @@
     strokeSize,
     strokeOpacity,
     hasDrawing,
+    stampChar,
   } from "./store.js";
 
   let canvasContainer;
@@ -39,6 +40,8 @@
     const unsubStrokeOpacity = strokeOpacity.subscribe((v) => (currentStrokeOpacity = v));
     let currentFillMode = "solid";
     const unsubFillMode = fillMode.subscribe((v) => (currentFillMode = v));
+    let currentStampChar = "A";
+    const unsubStampChar = stampChar.subscribe((v) => (currentStampChar = v));
     let currentCameraShake = 0;
     const unsubCameraShake = cameraShakeIntensity.subscribe(
       (v) => (currentCameraShake = v),
@@ -173,6 +176,14 @@
           w = p.random(10, 25) * sizeMult;
           h = w;
           rot = p.random(p.TWO_PI);
+        } else if (currentStrokeType.startsWith("stamp_")) {
+          w = p.random(20, 35) * sizeMult;
+          h = w;
+          if (currentStrokeType === "stamp_char") {
+            rot = p.random(p.TWO_PI);
+          } else {
+            rot = p.random(-0.15, 0.15); // Slight organic tilt, but keeps plus upright
+          }
         } else {
           w = (len + 5) * sizeMult;
           h = p.random(2, 6) * sizeMult;
@@ -202,6 +213,7 @@
           opacity: strokeOpacity,
           type: currentStrokeType === "line" ? "rect" : currentStrokeType,
           fillMode: currentFillMode,
+          char: currentStampChar,
         });
       }
 
@@ -247,10 +259,25 @@
       };
 
       // ── Mouse handlers (desktop) ──────────────────────
+      p.mousePressed = (event) => {
+        if (event && event.target && event.target.tagName !== "CANVAS") return;
+        if (currentVisualPhase === "drawing" && currentState === "home") {
+          lastDrawPoint = null;
+          if (currentStrokeType.startsWith("stamp_")) {
+            createShard(p.mouseX - p.width / 2, p.mouseY - p.height / 2, null);
+          } else {
+            addDrawPoints(p.mouseX, p.mouseY);
+          }
+          return false;
+        }
+      };
+
       p.mouseDragged = (event) => {
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
-          addDrawPoints(p.mouseX, p.mouseY);
+          if (!currentStrokeType.startsWith("stamp_")) {
+            addDrawPoints(p.mouseX, p.mouseY);
+          }
           return false; // prevent default only when drawing
         }
       };
@@ -266,7 +293,11 @@
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null; // reset for new stroke
           if (p.touches.length > 0) {
-            addDrawPoints(p.touches[0].x, p.touches[0].y);
+            if (currentStrokeType.startsWith("stamp_")) {
+              createShard(p.touches[0].x - p.width / 2, p.touches[0].y - p.height / 2, null);
+            } else {
+              addDrawPoints(p.touches[0].x, p.touches[0].y);
+            }
           }
           return false; // prevent default only when drawing
         }
@@ -275,7 +306,7 @@
       p.touchMoved = (event) => {
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
-          if (p.touches.length > 0) {
+          if (p.touches.length > 0 && !currentStrokeType.startsWith("stamp_")) {
             addDrawPoints(p.touches[0].x, p.touches[0].y);
           }
           return false; // prevent default only when drawing
@@ -572,6 +603,7 @@
                 opacity: s.opacity || 255,
                 type: s.type,
                 fillMode: s.fillMode || "solid",
+                char: s.char,
                 id: s.id,
                 baseTargetX: s.baseTargetX,
                 baseTargetY: s.baseTargetY,
@@ -747,6 +779,20 @@
               p.vertex(0, s.h / 2);
               p.vertex(-s.w / 2, 0);
               p.endShape(p.CLOSE);
+            } else if (s.type === "stamp_asterisk") {
+              p.push();
+              for (let i = 0; i < 3; i++) {
+                p.rect(0, 0, s.w, s.h * 0.15, 2);
+                p.rotate(p.PI / 3);
+              }
+              p.pop();
+            } else if (s.type === "stamp_plus") {
+              p.rect(0, 0, s.w, s.h * 0.2, 2);
+              p.rect(0, 0, s.w * 0.2, s.h, 2);
+            } else if (s.type === "stamp_char") {
+              p.textAlign(p.CENTER, p.CENTER);
+              p.textSize(s.w * 0.8);
+              p.text(s.char || "A", 0, 0);
             }
             p.pop();
           }
@@ -786,6 +832,7 @@
       unsubStrokeSize();
       unsubStrokeOpacity();
       unsubFillMode();
+      unsubStampChar();
       unsubCameraShake();
       unsubLayout();
       unsubTheme();

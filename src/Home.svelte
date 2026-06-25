@@ -13,6 +13,7 @@
     journalLayout,
     strokeSize,
     strokeOpacity,
+    stampChar,
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
@@ -68,7 +69,6 @@
       }
     }
   }
-
 
   let showBrushSettings = false;
 
@@ -133,237 +133,275 @@
           <div
             class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards] mb-3"
           >
-          <!-- Header -->
-          <div
-            class="flex justify-between items-center border-b border-border pb-2"
-          >
-            <span
-              class="text-[0.75rem] font-bold tracking-wider uppercase text-text-secondary"
-              >Brush Settings</span
-            >
-            <button
-              aria-label="Close settings"
-              class="bg-transparent border-none text-text-secondary hover:text-text-primary cursor-pointer p-1 flex items-center justify-center rounded-circle hover:bg-surface transition-colors"
-              on:click={() => (showBrushSettings = false)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-
-          <!-- Palette Selection -->
-          <div class="flex flex-col gap-1.5 text-left">
-            <span
-              class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-              >Palette</span
-            >
+            <!-- Header -->
             <div
-              class="flex items-center justify-between bg-surface/30 rounded-pill px-3 py-1 border border-border"
+              class="flex justify-between items-center border-b border-border pb-2"
             >
-              <button
-                class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
-                on:click={prevBrushPalette}
-              >
-                &lt;
-              </button>
               <span
-                class="text-[0.875rem] font-medium text-text-primary min-w-[80px] text-center"
-                >{activePalette.name}</span
+                class="text-[0.75rem] font-bold tracking-wider uppercase text-text-secondary"
+                >Brush Settings</span
               >
               <button
-                class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
-                on:click={nextBrushPalette}
+                aria-label="Close settings"
+                class="bg-transparent border-none text-text-secondary hover:text-text-primary cursor-pointer p-1 flex items-center justify-center rounded-circle hover:bg-surface transition-colors"
+                on:click={() => (showBrushSettings = false)}
               >
-                &gt;
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
-          </div>
 
-          <!-- Stroke Selection -->
-          <div class="flex flex-col gap-1.5 text-left">
-            <span
-              class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-              >Stroke Type</span
-            >
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
-                'ellipse'
-                  ? 'bg-accent text-text-inverse'
-                  : 'bg-transparent text-text-primary'}"
-                on:click={() => strokeType.set("ellipse")}
-              >
-                Round
-              </button>
-              <button
-                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
-                'rect'
-                  ? 'bg-accent text-text-inverse'
-                  : 'bg-transparent text-text-primary'}"
-                on:click={() => strokeType.set("rect")}
-              >
-                Square
-              </button>
-              <button
-                class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
-                'line'
-                  ? 'bg-accent text-text-inverse'
-                  : 'bg-transparent text-text-primary'}"
-                on:click={() => strokeType.set("line")}
-              >
-                Line
-              </button>
-            </div>
-          </div>
-
-          <!-- Fill Selection -->
-          <div class="flex flex-col gap-1.5 text-left">
-            <span
-              class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-              >Fill Mode</span
-            >
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
-                'solid'
-                  ? 'bg-surface-hover text-text-primary border-text-secondary'
-                  : 'bg-transparent text-text-secondary'}"
-                on:click={() => fillMode.set("solid")}
-              >
-                Solid
-              </button>
-              <button
-                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
-                'stroke'
-                  ? 'bg-surface-hover text-text-primary border-text-secondary'
-                  : 'bg-transparent text-text-secondary'}"
-                on:click={() => fillMode.set("stroke")}
-              >
-                Stroke
-              </button>
-              <button
-                class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
-                'gradient'
-                  ? 'bg-surface-hover text-text-primary border-text-secondary'
-                  : 'bg-transparent text-text-secondary'}"
-                on:click={() => fillMode.set("gradient")}
-              >
-                Gradient
-              </button>
-            </div>
-          </div>
-
-          <!-- Brush Size Slider -->
-          <div class="flex flex-col gap-1.5 text-left">
-            <div class="flex justify-between items-center">
+            <!-- Palette Selection -->
+            <div class="flex flex-col gap-1.5 text-left">
               <span
                 class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-                >Size</span
+                >Palette</span
               >
-              <span class="text-[0.75rem] font-medium text-text-secondary"
-                >{Math.round($strokeSize * 100)}%</span
+              <div
+                class="flex items-center justify-between bg-surface/30 rounded-pill px-3 py-1 border border-border"
               >
+                <button
+                  class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
+                  on:click={prevBrushPalette}
+                >
+                  &lt;
+                </button>
+                <span
+                  class="text-[0.875rem] font-medium text-text-primary min-w-[80px] text-center"
+                  >{activePalette.name}</span
+                >
+                <button
+                  class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
+                  on:click={nextBrushPalette}
+                >
+                  &gt;
+                </button>
+              </div>
             </div>
-            <input
-              type="range"
-              min="0.2"
-              max="3.0"
-              step="0.1"
-              bind:value={$strokeSize}
-              class="pointer-events-auto w-full accent-accent bg-surface/50 h-1.5 rounded-pill appearance-none cursor-pointer"
-            />
-          </div>
 
-          <!-- Brush Opacity Slider -->
-          <div class="flex flex-col gap-1.5 text-left">
-            <div class="flex justify-between items-center">
+            <!-- Stroke Selection -->
+            <div class="flex flex-col gap-1.5 text-left">
               <span
                 class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-                >Opacity</span
+                >Stroke Type</span
               >
-              <span class="text-[0.75rem] font-medium text-text-secondary"
-                >{Math.round($strokeOpacity * 100)}%</span
-              >
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                  'ellipse'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => strokeType.set("ellipse")}
+                >
+                  Round
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                  'rect'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => strokeType.set("rect")}
+                >
+                  Square
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                  'line'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => strokeType.set("line")}
+                >
+                  Line
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                  'stamp_asterisk'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => strokeType.set("stamp_asterisk")}
+                >
+                  Asterisk (*)
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                  'stamp_plus'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => strokeType.set("stamp_plus")}
+                >
+                  Plus (+)
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
+                  'stamp_char'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => strokeType.set("stamp_char")}
+                >
+                  Character
+                </button>
+              </div>
+              {#if $strokeType === 'stamp_char'}
+                <div class="mt-2 flex items-center gap-2 pointer-events-auto">
+                  <span class="text-[0.75rem] font-medium text-text-secondary">Type letter:</span>
+                  <input
+                    type="text"
+                    maxlength="2"
+                    bind:value={$stampChar}
+                    class="w-12 text-center bg-surface border border-border rounded text-[0.875rem] text-text-primary py-1 outline-none focus:border-accent"
+                  />
+                </div>
+              {/if}
             </div>
-            <input
-              type="range"
-              min="0.1"
-              max="1.0"
-              step="0.05"
-              bind:value={$strokeOpacity}
-              class="pointer-events-auto w-full accent-accent bg-surface/50 h-1.5 rounded-pill appearance-none cursor-pointer"
-            />
-          </div>
-        </div>
-      {/if}
 
-      <!-- Floating Bottom Control Bar -->
-      <div
-        class="drawing-bar flex items-center gap-3 px-4 py-2 rounded-pill pointer-events-auto transition-transform duration-normal ease-default hover:scale-[1.02] opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
-      >
-        <!-- Settings Button -->
-        <button
-          aria-label="Brush Settings"
-          class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1.5 flex items-center justify-center rounded-circle hover:bg-surface-hover transition-colors {showBrushSettings
-            ? 'text-accent bg-surface-hover scale-110'
-            : ''}"
-          on:click={() => (showBrushSettings = !showBrushSettings)}
+            <!-- Fill Selection -->
+            <div class="flex flex-col gap-1.5 text-left">
+              <span
+                class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+                >Fill Mode</span
+              >
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+                  'solid'
+                    ? 'bg-surface-hover text-text-primary border-text-secondary'
+                    : 'bg-transparent text-text-secondary'}"
+                  on:click={() => fillMode.set("solid")}
+                >
+                  Solid
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+                  'stroke'
+                    ? 'bg-surface-hover text-text-primary border-text-secondary'
+                    : 'bg-transparent text-text-secondary'}"
+                  on:click={() => fillMode.set("stroke")}
+                >
+                  Stroke
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
+                  'gradient'
+                    ? 'bg-surface-hover text-text-primary border-text-secondary'
+                    : 'bg-transparent text-text-secondary'}"
+                  on:click={() => fillMode.set("gradient")}
+                >
+                  Gradient
+                </button>
+              </div>
+            </div>
+
+            <!-- Brush Size Slider -->
+            <div class="flex flex-col gap-1.5 text-left">
+              <div class="flex justify-between items-center">
+                <span
+                  class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+                  >Size</span
+                >
+                <span class="text-[0.75rem] font-medium text-text-secondary"
+                  >{Math.round($strokeSize * 100)}%</span
+                >
+              </div>
+              <input
+                type="range"
+                min="0.2"
+                max="3.0"
+                step="0.1"
+                bind:value={$strokeSize}
+                class="pointer-events-auto w-full accent-accent bg-surface/50 h-1.5 rounded-pill appearance-none cursor-pointer"
+              />
+            </div>
+
+            <!-- Brush Opacity Slider -->
+            <div class="flex flex-col gap-1.5 text-left">
+              <div class="flex justify-between items-center">
+                <span
+                  class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+                  >Opacity</span
+                >
+                <span class="text-[0.75rem] font-medium text-text-secondary"
+                  >{Math.round($strokeOpacity * 100)}%</span
+                >
+              </div>
+              <input
+                type="range"
+                min="0.1"
+                max="1.0"
+                step="0.05"
+                bind:value={$strokeOpacity}
+                class="pointer-events-auto w-full accent-accent bg-surface/50 h-1.5 rounded-pill appearance-none cursor-pointer"
+              />
+            </div>
+          </div>
+        {/if}
+
+        <!-- Floating Bottom Control Bar -->
+        <div
+          class="drawing-bar flex items-center gap-3 px-4 py-2 rounded-pill pointer-events-auto transition-transform duration-normal ease-default hover:scale-[1.02] opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+          <!-- Settings Button -->
+          <button
+            aria-label="Brush Settings"
+            class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1.5 flex items-center justify-center rounded-circle hover:bg-surface-hover transition-colors {showBrushSettings
+              ? 'text-accent bg-surface-hover scale-110'
+              : ''}"
+            on:click={() => (showBrushSettings = !showBrushSettings)}
           >
-            <line x1="21" x2="14" y1="4" y2="4" />
-            <line x1="10" x2="3" y1="4" y2="4" />
-            <line x1="21" x2="12" y1="12" y2="12" />
-            <line x1="8" x2="3" y1="12" y2="12" />
-            <line x1="21" x2="16" y1="20" y2="20" />
-            <line x1="12" x2="3" y1="20" y2="20" />
-            <line x1="14" x2="14" y1="2" y2="6" />
-            <line x1="8" x2="8" y1="10" y2="14" />
-            <line x1="16" x2="16" y1="18" y2="22" />
-          </svg>
-        </button>
-
-        <!-- Divider -->
-        <div class="w-[1px] h-5 bg-border"></div>
-
-        <!-- Color Selection -->
-        <div class="flex gap-2 items-center">
-          {#each activePalette.colors as color, i}
-            <button
-              aria-label="Color {i + 1}"
-              class="w-6 h-6 rounded-circle border-2 cursor-pointer shadow-sm transition-transform duration-normal ease-default {$strokeColor ===
-              color
-                ? 'border-accent scale-125'
-                : 'border-transparent'}"
-              style="background: {color};"
-              on:click={() => strokeColor.set(color)}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
-            </button>
-          {/each}
+              <line x1="21" x2="14" y1="4" y2="4" />
+              <line x1="10" x2="3" y1="4" y2="4" />
+              <line x1="21" x2="12" y1="12" y2="12" />
+              <line x1="8" x2="3" y1="12" y2="12" />
+              <line x1="21" x2="16" y1="20" y2="20" />
+              <line x1="12" x2="3" y1="20" y2="20" />
+              <line x1="14" x2="14" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="10" y2="14" />
+              <line x1="16" x2="16" y1="18" y2="22" />
+            </svg>
+          </button>
+
+          <!-- Divider -->
+          <div class="w-[1px] h-5 bg-border"></div>
+
+          <!-- Color Selection -->
+          <div class="flex gap-2 items-center">
+            {#each activePalette.colors as color, i}
+              <button
+                aria-label="Color {i + 1}"
+                class="w-6 h-6 rounded-circle border-2 cursor-pointer shadow-sm transition-transform duration-normal ease-default {$strokeColor ===
+                color
+                  ? 'border-accent scale-125'
+                  : 'border-transparent'}"
+                style="background: {color};"
+                on:click={() => strokeColor.set(color)}
+              >
+              </button>
+            {/each}
+          </div>
         </div>
       </div>
-    </div>
     {:else if $visualPhase === "ready_to_shake"}
       <p
         class="text-[1.2rem] font-normal tracking-[0.01em] text-text-primary transition-opacity duration-xslow ease-default opacity-100 animate-[fadeIn_1s_cubic-bezier(0,0,0.2,1)]"
@@ -388,8 +426,6 @@
     {/if}
   </div>
 </div>
-
-
 
 <style>
   @keyframes fadeIn {

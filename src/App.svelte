@@ -268,17 +268,7 @@
 >
   <P5Canvas />
 
-  {#if entriesLoading}
-    <div
-      class="absolute top-6 left-6 z-[100] flex items-center gap-2 px-4 py-2 pointer-events-none glass-panel"
-      style="border-radius: var(--radius-pill); box-shadow: var(--shadow-sm);"
-    >
-      <div
-        class="w-2 h-2 animate-ping"
-        style="background-color: var(--color-accent); border-radius: var(--radius-circle);"
-      ></div>
-    </div>
-  {/if}
+
 
   {#if !$isFullscreenVisual}
     {#if $appState === "auth"}
