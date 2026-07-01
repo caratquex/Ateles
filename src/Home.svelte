@@ -14,6 +14,7 @@
     strokeSize,
     strokeOpacity,
     stampChar,
+    shakeMode,
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
@@ -264,6 +265,61 @@
                   />
                 </div>
               {/if}
+            </div>
+
+            <!-- Shake Mode Selection -->
+            <div class="flex flex-col gap-1.5 text-left">
+              <span
+                class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
+                >Shake Mode</span
+              >
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'chaos'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("chaos")}
+                >
+                  Chaos
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'orbits'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("orbits")}
+                >
+                  Orbits
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'perlin'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("perlin")}
+                >
+                  Fluid
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'grid'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("grid")}
+                >
+                  Grid
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'geometric_web'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("geometric_web")}
+                >
+                  Web
+                </button>
+              </div>
             </div>
 
             <!-- Fill Selection -->

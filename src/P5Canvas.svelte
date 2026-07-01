@@ -20,6 +20,7 @@
     strokeOpacity,
     hasDrawing,
     stampChar,
+    shakeMode,
   } from "./store.js";
 
   let canvasContainer;
@@ -42,6 +43,8 @@
     const unsubFillMode = fillMode.subscribe((v) => (currentFillMode = v));
     let currentStampChar = "A";
     const unsubStampChar = stampChar.subscribe((v) => (currentStampChar = v));
+    let currentShakeMode = "orbits";
+    const unsubShakeMode = shakeMode.subscribe((v) => (currentShakeMode = v));
     let currentCameraShake = 0;
     const unsubCameraShake = cameraShakeIntensity.subscribe(
       (v) => (currentCameraShake = v),
@@ -536,7 +539,13 @@
                 true,
               );
 
+              visualParams.shakeMode = currentShakeMode;
+
               let baseSize = p.floor(shards.length / slices);
+              let activeCount = slices * baseSize;
+              
+              visualParams.slices = slices;
+              visualParams.baseSize = baseSize;
 
               let scaleMult = p.map(
                 maxShakeDuringBreak,
@@ -547,42 +556,164 @@
                 true,
               );
 
-              for (let i = 0; i < slices; i++) {
-                let angle = (p.TWO_PI / slices) * i;
-                let isMirrored = i % 2 === 1;
-
-                for (let k = 0; k < baseSize; k++) {
-                  let idx = i * baseSize + k;
-                  if (idx >= shards.length) break;
-                  let s = shards[idx];
-
-                  let baseX = shards[k].x;
-                  let baseY = shards[k].y;
-                  let baseRot = shards[k].rot;
-
-                  let tx = baseX;
-                  let ty = baseY;
-                  let trot = baseRot;
-
-                  if (isMirrored) {
-                    ty = -ty;
-                    trot = -trot;
+              if (visualParams.shakeMode === 'orbits') {
+                // Calculate color statistics for active shards
+                let colorDistances = {};
+                let colorCountsTotal = {};
+                for (let i = 0; i < activeCount; i++) {
+                  let s = shards[i];
+                  let d = p.dist(0, 0, s.x, s.y);
+                  if (!colorDistances[s.color]) {
+                    colorDistances[s.color] = 0;
+                    colorCountsTotal[s.color] = 0;
                   }
+                  colorDistances[s.color] += d;
+                  colorCountsTotal[s.color]++;
+                }
+                
+                let colorAvgDist = {};
+                for (let c in colorDistances) {
+                  colorAvgDist[c] = colorDistances[c] / colorCountsTotal[c];
+                }
+                let uniqueColors = Object.keys(colorAvgDist).sort((a, b) => colorAvgDist[a] - colorAvgDist[b]);
+                
+                let minOrbitRadius = 30;
+                let orbitSpacing = 40;
+                
+                let colorCounters = {};
+                for (let c of uniqueColors) colorCounters[c] = 0;
 
-                  s.baseTargetX =
-                    (tx * p.cos(angle) - ty * p.sin(angle)) *
-                    scaleMult *
-                    spreadMult *
-                    visualParams.orbitXRatio;
-                  s.baseTargetY =
-                    (tx * p.sin(angle) + ty * p.cos(angle)) *
-                    scaleMult *
-                    spreadMult *
-                    visualParams.orbitYRatio;
-                  s.baseTargetRot = trot + angle;
+                for (let idx = 0; idx < activeCount; idx++) {
+                  let s = shards[idx];
+                  
+                  let cIdx = uniqueColors.indexOf(s.color);
+                  let countForColor = colorCountsTotal[s.color];
+                  let currentC = colorCounters[s.color]++;
+                  
+                  // Distribute evenly around FULL circle
+                  let theta = (currentC / countForColor) * p.TWO_PI;
+                  
+                  // Add tiny random variation (+/- 5)
+                  let rVariation = p.random(-5, 5);
+                  let R = minOrbitRadius + cIdx * orbitSpacing + rVariation;
+                  
+                  s.baseTargetX = R * p.cos(theta) * scaleMult * spreadMult * visualParams.orbitXRatio;
+                  s.baseTargetY = R * p.sin(theta) * scaleMult * spreadMult * visualParams.orbitYRatio;
+                  
+                  // Follow orbit tangent
+                  s.baseTargetRot = theta + p.PI / 2;
+                  
+                  // Maintain size proportional to original
+                  s.targetW = s.originalW * scaleMult * dragRatioX;
+                  s.targetH = s.originalH * scaleMult * dragRatioY;
+                }
+              } else if (visualParams.shakeMode === 'perlin') {
+                for (let i = 0; i < shards.length; i++) {
+                  let s = shards[i];
+                  s.trail = [];
+                  s.baseTargetX = s.x;
+                  s.baseTargetY = s.y;
+                  s.baseTargetRot = s.rot;
+                  s.targetW = s.originalW * scaleMult * dragRatioX * 0.5; // Make them slightly smaller for cleaner flow lines
+                  s.targetH = s.originalH * scaleMult * dragRatioY * 0.5;
+                }
+              } else if (visualParams.shakeMode === 'grid') {
+                let gridSize = 40;
+                for (let k = 0; k < baseSize; k++) {
+                    let s = shards[k];
+                    if (!s) continue;
+                    s.type = 'rect';
+                    s.targetW = gridSize * 0.9 * scaleMult;
+                    s.targetH = gridSize * 0.9 * scaleMult;
+                    s.baseTargetX = Math.round(s.baseTargetX / gridSize) * gridSize;
+                    s.baseTargetY = Math.round(s.baseTargetY / gridSize) * gridSize;
+                    s.baseTargetRot = 0; 
+                }
+                
+                for (let i = 1; i < slices; i++) {
+                  let angle = (p.TWO_PI / slices) * i;
+                  let isMirrored = i % 2 === 1;
 
-                  s.targetW = shards[k].originalW * scaleMult * dragRatioX;
-                  s.targetH = shards[k].originalH * scaleMult * dragRatioY;
+                  for (let k = 0; k < baseSize; k++) {
+                    let idx = i * baseSize + k;
+                    if (idx >= shards.length) break;
+                    let sMirror = shards[idx];
+                    let s0 = shards[k];
+                    
+                    let tx = s0.baseTargetX;
+                    let ty = s0.baseTargetY;
+                    let trot = s0.baseTargetRot;
+                    if (isMirrored) { ty = -ty; trot = -trot; }
+
+                    sMirror.baseTargetX = tx * p.cos(angle) - ty * p.sin(angle);
+                    sMirror.baseTargetY = tx * p.sin(angle) + ty * p.cos(angle);
+                    sMirror.baseTargetRot = trot + angle;
+                    sMirror.type = 'rect';
+                    sMirror.targetW = s0.targetW;
+                    sMirror.targetH = s0.targetH;
+                  }
+                }
+              } else if (visualParams.shakeMode === 'geometric_web') {
+                let connections = [];
+                for (let i = 0; i < shards.length; i++) {
+                  let s = shards[i];
+                  let dists = [];
+                  for (let j = 0; j < shards.length; j++) {
+                    if (i === j) continue;
+                    let dSq = (s.x - shards[j].x)**2 + (s.y - shards[j].y)**2;
+                    dists.push({j, dSq});
+                  }
+                  dists.sort((a,b) => a.dSq - b.dSq);
+                  if (dists[0]) connections.push({i1: i, i2: dists[0].j});
+                  if (dists[1]) connections.push({i1: i, i2: dists[1].j});
+                  
+                  s.baseTargetX = s.x;
+                  s.baseTargetY = s.y;
+                  s.baseTargetRot = s.rot;
+                  s.type = 'rect'; // Force rectangular aesthetic
+                  s.targetW = s.originalW * scaleMult * dragRatioX * 0.7;
+                  s.targetH = s.originalH * scaleMult * dragRatioY * 0.7;
+                }
+                visualParams.webConnections = connections;
+              } else {
+                // 'chaos' mode
+                for (let i = 0; i < slices; i++) {
+                  let angle = (p.TWO_PI / slices) * i;
+                  let isMirrored = i % 2 === 1;
+
+                  for (let k = 0; k < baseSize; k++) {
+                    let idx = i * baseSize + k;
+                    if (idx >= shards.length) break;
+                    let s = shards[idx];
+
+                    let baseX = shards[k].x;
+                    let baseY = shards[k].y;
+                    let baseRot = shards[k].rot;
+
+                    let tx = baseX;
+                    let ty = baseY;
+                    let trot = baseRot;
+
+                    if (isMirrored) {
+                      ty = -ty;
+                      trot = -trot;
+                    }
+
+                    s.baseTargetX =
+                      (tx * p.cos(angle) - ty * p.sin(angle)) *
+                      scaleMult *
+                      spreadMult *
+                      visualParams.orbitXRatio;
+                    s.baseTargetY =
+                      (tx * p.sin(angle) + ty * p.cos(angle)) *
+                      scaleMult *
+                      spreadMult *
+                      visualParams.orbitYRatio;
+                    s.baseTargetRot = trot + angle;
+
+                    s.targetW = shards[k].originalW * scaleMult * dragRatioX;
+                    s.targetH = shards[k].originalH * scaleMult * dragRatioY;
+                  }
                 }
               }
 
@@ -624,29 +755,90 @@
           }
         } else if (currentVisualPhase === "bloom") {
           let time = p.millis() * 0.001;
-          for (let s of shards) {
-            let breathCycle =
-              p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) *
-              visualParams.breathingAmp;
-            let angleFromCenter = p.atan2(s.baseTargetY, s.baseTargetX);
+          for (let i = 0; i < shards.length; i++) {
+            let s = shards[i];
+            if (visualParams.shakeMode === 'perlin') {
+              let bSize = visualParams.baseSize || shards.length;
+              let sliceIdx = Math.floor(i / bSize);
+              let k = i % bSize;
+              
+              if (sliceIdx === 0) {
+                  s.jumped = false;
+                  // Randomly respawn particles to prevent them from merging into a single sink
+                  if (p.random() < 0.008) { 
+                      let spawnDist = p.random(10, p.width * 0.25);
+                      let spawnAngle = p.random(0, p.TWO_PI);
+                      s.baseTargetX = p.cos(spawnAngle) * spawnDist;
+                      s.baseTargetY = p.sin(spawnAngle) * spawnDist;
+                      s.trail = [];
+                      s.jumped = true;
+                  }
 
-            if (visualParams.breathingStyle === "radial") {
-              // Radial pumping
-              s.targetX =
-                s.baseTargetX + p.cos(angleFromCenter) * breathCycle * 5;
-              s.targetY =
-                s.baseTargetY + p.sin(angleFromCenter) * breathCycle * 5;
-              s.targetRot =
-                s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.02;
+                  let noiseScale = 0.005;
+                  let angle = p.noise(s.baseTargetX * noiseScale, s.baseTargetY * noiseScale, time * 0.2) * p.TWO_PI * 4;
+                  let speed = 2.0;
+                  s.baseTargetX += p.cos(angle) * speed;
+                  s.baseTargetY += p.sin(angle) * speed;
+                  
+                  let d = p.dist(0, 0, s.baseTargetX, s.baseTargetY);
+                  if (d > p.width * 0.4) {
+                      s.baseTargetX *= 0.98;
+                      s.baseTargetY *= 0.98;
+                  }
+                  
+                  s.targetX = s.baseTargetX;
+                  s.targetY = s.baseTargetY;
+                  s.targetRot = angle;
+              } else {
+                  let rootShard = shards[k];
+                  if (rootShard.jumped) {
+                      s.trail = [];
+                  }
+
+                  let tx = rootShard.targetX;
+                  let ty = rootShard.targetY;
+                  let trot = rootShard.targetRot;
+                  
+                  let angleMod = (p.TWO_PI / (visualParams.slices || 1)) * sliceIdx;
+                  let isMirrored = sliceIdx % 2 === 1;
+                  
+                  if (isMirrored) { ty = -ty; trot = -trot; }
+                  
+                  s.targetX = tx * p.cos(angleMod) - ty * p.sin(angleMod);
+                  s.targetY = tx * p.sin(angleMod) + ty * p.cos(angleMod);
+                  s.targetRot = trot + angleMod;
+                  
+                  s.baseTargetX = s.targetX;
+                  s.baseTargetY = s.targetY;
+              }
+              
+              if (!s.trail) s.trail = [];
+              s.trail.push({x: s.targetX, y: s.targetY});
+              if (s.trail.length > 25) s.trail.shift();
             } else {
-              // Tangential swirling
-              let tangX = -p.sin(angleFromCenter);
-              let tangY = p.cos(angleFromCenter);
-              s.targetX = s.baseTargetX + tangX * breathCycle * 5;
-              s.targetY = s.baseTargetY + tangY * breathCycle * 5;
-              s.targetRot =
-                s.baseTargetRot +
-                p.sin(time * 0.5 + s.id * 0.1) * 0.1 * breathCycle;
+              let breathCycle =
+                p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) *
+                visualParams.breathingAmp;
+              let angleFromCenter = p.atan2(s.baseTargetY, s.baseTargetX);
+
+              if (visualParams.breathingStyle === "radial") {
+                // Radial pumping
+                s.targetX =
+                  s.baseTargetX + p.cos(angleFromCenter) * breathCycle * 5;
+                s.targetY =
+                  s.baseTargetY + p.sin(angleFromCenter) * breathCycle * 5;
+                s.targetRot =
+                  s.baseTargetRot + p.sin(time * 0.5 + s.id * 0.1) * 0.02;
+              } else {
+                // Tangential swirling
+                let tangX = -p.sin(angleFromCenter);
+                let tangY = p.cos(angleFromCenter);
+                s.targetX = s.baseTargetX + tangX * breathCycle * 5;
+                s.targetY = s.baseTargetY + tangY * breathCycle * 5;
+                s.targetRot =
+                  s.baseTargetRot +
+                  p.sin(time * 0.5 + s.id * 0.1) * 0.1 * breathCycle;
+              }
             }
           }
         }
@@ -732,6 +924,35 @@
           globalRotation = 0;
         }
         p.rotate(globalRotation);
+
+        if (visualParams.shakeMode === 'geometric_web' && visualParams.webConnections && currentVisualPhase === 'bloom') {
+            let lineCol = p.color(borderHex);
+            lineCol.setAlpha(100);
+            p.stroke(lineCol);
+            p.strokeWeight(1.0);
+            for (let c of visualParams.webConnections) {
+                let p1 = shards[c.i1];
+                let p2 = shards[c.i2];
+                if (p1 && p2) {
+                    p.line(p1.x, p1.y, p2.x, p2.y);
+                }
+            }
+        } else if (visualParams.shakeMode === 'perlin') {
+            for (let s of shards) {
+                if (s.trail && s.trail.length > 1) {
+                    p.noFill();
+                    let c = p.color(s.color);
+                    c.setAlpha( (s.opacity || 255) * 0.5 );
+                    p.stroke(c);
+                    p.strokeWeight(s.w * 0.8);
+                    p.beginShape();
+                    for (let pt of s.trail) {
+                        p.vertex(pt.x, pt.y);
+                    }
+                    p.endShape();
+                }
+            }
+        }
 
         for (let s of shards) {
           if (s.w > 0.5 && s.h > 0.5) {
