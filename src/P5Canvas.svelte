@@ -22,6 +22,7 @@
     stampChar,
     shakeMode,
   } from "./store.js";
+  import DrawingTracker from "./DrawingTracker.js";
 
   let canvasContainer;
   let p5Instance;
@@ -36,9 +37,13 @@
     let currentStrokeColor = "#000000";
     const unsubColor = strokeColor.subscribe((v) => (currentStrokeColor = v));
     let currentStrokeSize = 1.0;
-    const unsubStrokeSize = strokeSize.subscribe((v) => (currentStrokeSize = v));
+    const unsubStrokeSize = strokeSize.subscribe(
+      (v) => (currentStrokeSize = v),
+    );
     let currentStrokeOpacity = 1.0;
-    const unsubStrokeOpacity = strokeOpacity.subscribe((v) => (currentStrokeOpacity = v));
+    const unsubStrokeOpacity = strokeOpacity.subscribe(
+      (v) => (currentStrokeOpacity = v),
+    );
     let currentFillMode = "solid";
     const unsubFillMode = fillMode.subscribe((v) => (currentFillMode = v));
     let currentStampChar = "A";
@@ -60,7 +65,9 @@
       setTimeout(() => {
         const style = getComputedStyle(document.documentElement);
         bgHex = style.getPropertyValue("--color-bg").trim() || "#FFFFFF";
-        borderHex = style.getPropertyValue("--color-border-strong").trim() || "rgba(0, 0, 0, 0.20)";
+        borderHex =
+          style.getPropertyValue("--color-border-strong").trim() ||
+          "rgba(0, 0, 0, 0.20)";
       }, 50);
     });
 
@@ -75,10 +82,14 @@
     });
 
     const sketch = (p) => {
+      let tracker;
       let currentShake = 0;
       let targetShake = 0;
 
       let shards = [];
+      let undoStack = [];
+      let redoStack = [];
+      let currentStrokeCount = 0;
 
       let maxShakeDuringBreak = 0;
       let calmFrames = 0; // To detect when shake has stopped
@@ -128,6 +139,9 @@
           // Reset when going back to home
           if (currentState === "home" || currentState === "gallery") {
             shards = [];
+            undoStack = [];
+            redoStack = [];
+            currentStrokeCount = 0;
             totalDrawDistance = 0;
             totalDrawDistX = 0;
             totalDrawDistY = 0;
@@ -142,6 +156,9 @@
       unsubClear = clearCanvasTrigger.subscribe((v) => {
         if (v > 0) {
           shards = [];
+          undoStack = [];
+          redoStack = [];
+          currentStrokeCount = 0;
           totalDrawDistance = 0;
           totalDrawDistX = 0;
           totalDrawDistY = 0;
@@ -165,14 +182,16 @@
       // Interpolation step size for filling gaps between fast touch moves
       const INTERP_STEP = 4;
 
-      function createShard(px, py, prevPt) {
+      function createShard(px, py, prevPt, speed = 5) {
         hasDrawing.set(true);
         let len = prevPt ? p.dist(prevPt.x, prevPt.y, px, py) : 5;
         let rot = prevPt ? p.atan2(py - prevPt.y, px - prevPt.x) : 0;
 
-        let magnitude = p.constrain(len, 1, 50);
-        let strokeOpacity = p.map(magnitude, 1, 25, 255, 10) * currentStrokeOpacity;
-        let sizeMult = p.map(magnitude, 1, 25, 1.0, 0.1) * currentStrokeSize;
+        let strokeOpacity = 255 * currentStrokeOpacity;
+
+        let magnitude = p.constrain(speed, 1, 50);
+        // Calligraphy style: slower (low speed) = thicker, faster (high speed) = thinner
+        let sizeMult = p.map(magnitude, 1, 50, 1.5, 0.5) * currentStrokeSize;
 
         let w, h;
         if (currentStrokeType === "ellipse" || currentStrokeType === "rect") {
@@ -192,6 +211,7 @@
           h = p.random(2, 6) * sizeMult;
         }
 
+        currentStrokeCount++;
         shards.push({
           id: shardCounter++,
           x: px,
@@ -243,14 +263,17 @@
         totalDrawDistance += d;
 
         // Interpolate for smooth, gap-free strokes
+        let startPt = p.createVector(lastDrawPoint.x, lastDrawPoint.y);
         let steps = Math.max(1, Math.floor(d / INTERP_STEP));
+        let prevPt = startPt;
         for (let i = 1; i <= steps; i++) {
           let t = i / steps;
-          let ix = p.lerp(lastDrawPoint.x, pt.x, t);
-          let iy = p.lerp(lastDrawPoint.y, pt.y, t);
-          createShard(ix, iy, lastDrawPoint);
-          lastDrawPoint = p.createVector(ix, iy);
+          let ix = p.lerp(startPt.x, pt.x, t);
+          let iy = p.lerp(startPt.y, pt.y, t);
+          createShard(ix, iy, prevPt, d);
+          prevPt = p.createVector(ix, iy);
         }
+        lastDrawPoint = prevPt;
       }
 
       // Initialize canvas
@@ -259,6 +282,35 @@
         canvas.parent(canvasContainer);
         p.rectMode(p.CENTER);
         p.noStroke();
+        tracker = new DrawingTracker(p);
+      };
+
+      p.keyPressed = (event) => {
+        if (currentVisualPhase === "drawing" && currentState === "home") {
+          if (
+            (event.code === "KeyZ" || event.key === "z" || event.key === "Z") &&
+            (event.ctrlKey || event.metaKey)
+          ) {
+            if (event.shiftKey) {
+              // Redo
+              if (redoStack.length > 0) {
+                let stroke = redoStack.pop();
+                undoStack.push(stroke.length);
+                shards.push(...stroke);
+              }
+            } else {
+              // Undo
+              if (undoStack.length > 0) {
+                let count = undoStack.pop();
+                let removed = shards.splice(shards.length - count, count);
+                redoStack.push(removed);
+              }
+            }
+
+            // Keep `hasDrawing` state up to date
+            hasDrawing.set(shards.length > 0);
+          }
+        }
       };
 
       // ── Mouse handlers (desktop) ──────────────────────
@@ -266,9 +318,17 @@
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null;
+          currentStrokeCount = 0;
+          redoStack = [];
           if (currentStrokeType.startsWith("stamp_")) {
             createShard(p.mouseX - p.width / 2, p.mouseY - p.height / 2, null);
           } else {
+            tracker.startStroke(
+              p.mouseX,
+              p.mouseY,
+              p.millis(),
+              currentStrokeSize,
+            );
             addDrawPoints(p.mouseX, p.mouseY);
           }
           return false;
@@ -279,6 +339,7 @@
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           if (!currentStrokeType.startsWith("stamp_")) {
+            tracker.addPoint(p.mouseX, p.mouseY);
             addDrawPoints(p.mouseX, p.mouseY);
           }
           return false; // prevent default only when drawing
@@ -287,7 +348,12 @@
 
       p.mouseReleased = (event) => {
         if (event && event.target && event.target.tagName !== "CANVAS") return;
+        tracker.endStroke();
         lastDrawPoint = null;
+        if (currentStrokeCount > 0) {
+          undoStack.push(currentStrokeCount);
+          currentStrokeCount = 0;
+        }
       };
 
       // ── Touch handlers (mobile) ───────────────────────
@@ -295,10 +361,22 @@
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null; // reset for new stroke
+          currentStrokeCount = 0;
+          redoStack = [];
           if (p.touches.length > 0) {
             if (currentStrokeType.startsWith("stamp_")) {
-              createShard(p.touches[0].x - p.width / 2, p.touches[0].y - p.height / 2, null);
+              createShard(
+                p.touches[0].x - p.width / 2,
+                p.touches[0].y - p.height / 2,
+                null,
+              );
             } else {
+              tracker.startStroke(
+                p.touches[0].x,
+                p.touches[0].y,
+                p.millis(),
+                currentStrokeSize,
+              );
               addDrawPoints(p.touches[0].x, p.touches[0].y);
             }
           }
@@ -310,6 +388,7 @@
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           if (p.touches.length > 0 && !currentStrokeType.startsWith("stamp_")) {
+            tracker.addPoint(p.touches[0].x, p.touches[0].y);
             addDrawPoints(p.touches[0].x, p.touches[0].y);
           }
           return false; // prevent default only when drawing
@@ -319,7 +398,12 @@
       p.touchEnded = (event) => {
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
+          tracker.endStroke();
           lastDrawPoint = null;
+          if (currentStrokeCount > 0) {
+            undoStack.push(currentStrokeCount);
+            currentStrokeCount = 0;
+          }
           return false;
         }
       };
@@ -337,7 +421,7 @@
           dotColor.setAlpha(80);
           p.fill(dotColor);
           p.noStroke();
-          
+
           let spacing = 24;
           let dotSize = 2.0;
           for (let x = spacing / 2; x < p.width; x += spacing) {
@@ -543,7 +627,7 @@
 
               let baseSize = p.floor(shards.length / slices);
               let activeCount = slices * baseSize;
-              
+
               visualParams.slices = slices;
               visualParams.baseSize = baseSize;
 
@@ -556,7 +640,11 @@
                 true,
               );
 
-              if (visualParams.shakeMode === 'orbits') {
+              // ==========================================
+              // 1. SETUP: ORBITS
+              // Distributes pieces along concentric circles
+              // ==========================================
+              if (visualParams.shakeMode === "orbits") {
                 // Calculate color statistics for active shards
                 let colorDistances = {};
                 let colorCountsTotal = {};
@@ -570,66 +658,87 @@
                   colorDistances[s.color] += d;
                   colorCountsTotal[s.color]++;
                 }
-                
+
                 let colorAvgDist = {};
                 for (let c in colorDistances) {
                   colorAvgDist[c] = colorDistances[c] / colorCountsTotal[c];
                 }
-                let uniqueColors = Object.keys(colorAvgDist).sort((a, b) => colorAvgDist[a] - colorAvgDist[b]);
-                
+                let uniqueColors = Object.keys(colorAvgDist).sort(
+                  (a, b) => colorAvgDist[a] - colorAvgDist[b],
+                );
+
                 let minOrbitRadius = 30;
                 let orbitSpacing = 40;
-                
+
                 let colorCounters = {};
                 for (let c of uniqueColors) colorCounters[c] = 0;
 
                 for (let idx = 0; idx < activeCount; idx++) {
                   let s = shards[idx];
-                  
+
                   let cIdx = uniqueColors.indexOf(s.color);
                   let countForColor = colorCountsTotal[s.color];
                   let currentC = colorCounters[s.color]++;
-                  
+
                   // Distribute evenly around FULL circle
                   let theta = (currentC / countForColor) * p.TWO_PI;
-                  
+
                   // Add tiny random variation (+/- 5)
                   let rVariation = p.random(-5, 5);
                   let R = minOrbitRadius + cIdx * orbitSpacing + rVariation;
-                  
-                  s.baseTargetX = R * p.cos(theta) * scaleMult * spreadMult * visualParams.orbitXRatio;
-                  s.baseTargetY = R * p.sin(theta) * scaleMult * spreadMult * visualParams.orbitYRatio;
-                  
+
+                  s.baseTargetX =
+                    R *
+                    p.cos(theta) *
+                    scaleMult *
+                    spreadMult *
+                    visualParams.orbitXRatio;
+                  s.baseTargetY =
+                    R *
+                    p.sin(theta) *
+                    scaleMult *
+                    spreadMult *
+                    visualParams.orbitYRatio;
+
                   // Follow orbit tangent
                   s.baseTargetRot = theta + p.PI / 2;
-                  
+
                   // Maintain size proportional to original
                   s.targetW = s.originalW * scaleMult * dragRatioX;
                   s.targetH = s.originalH * scaleMult * dragRatioY;
                 }
-              } else if (visualParams.shakeMode === 'perlin') {
+                // ==========================================
+                // 2. SETUP: PERLIN (FLUID)
+                // Prepares trails and sizes for fluid flow
+                // ==========================================
+              } else if (visualParams.shakeMode === "perlin") {
                 for (let i = 0; i < shards.length; i++) {
                   let s = shards[i];
                   s.trail = [];
                   s.baseTargetX = s.x;
                   s.baseTargetY = s.y;
                   s.baseTargetRot = s.rot;
-                  s.targetW = s.originalW * scaleMult * dragRatioX * 0.5; // Make them slightly smaller for cleaner flow lines
-                  s.targetH = s.originalH * scaleMult * dragRatioY * 0.5;
+                  s.targetW = s.originalW * scaleMult * dragRatioX;
+                  s.targetH = s.originalH * scaleMult * dragRatioY;
                 }
-              } else if (visualParams.shakeMode === 'grid') {
+                // ==========================================
+                // 3. SETUP: MATRIX
+                // Snaps pieces into structured pixel matrices
+                // ==========================================
+              } else if (visualParams.shakeMode === "matrix") {
                 let gridSize = 40;
                 for (let k = 0; k < baseSize; k++) {
-                    let s = shards[k];
-                    if (!s) continue;
-                    s.type = 'rect';
-                    s.targetW = gridSize * 0.9 * scaleMult;
-                    s.targetH = gridSize * 0.9 * scaleMult;
-                    s.baseTargetX = Math.round(s.baseTargetX / gridSize) * gridSize;
-                    s.baseTargetY = Math.round(s.baseTargetY / gridSize) * gridSize;
-                    s.baseTargetRot = 0; 
+                  let s = shards[k];
+                  if (!s) continue;
+                  s.targetW = gridSize * 0.9 * scaleMult;
+                  s.targetH = gridSize * 0.9 * scaleMult;
+                  s.baseTargetX =
+                    Math.round(s.baseTargetX / gridSize) * gridSize;
+                  s.baseTargetY =
+                    Math.round(s.baseTargetY / gridSize) * gridSize;
+                  s.baseTargetRot = 0;
                 }
-                
+
                 for (let i = 1; i < slices; i++) {
                   let angle = (p.TWO_PI / slices) * i;
                   let isMirrored = i % 2 === 1;
@@ -639,38 +748,45 @@
                     if (idx >= shards.length) break;
                     let sMirror = shards[idx];
                     let s0 = shards[k];
-                    
+
                     let tx = s0.baseTargetX;
                     let ty = s0.baseTargetY;
                     let trot = s0.baseTargetRot;
-                    if (isMirrored) { ty = -ty; trot = -trot; }
+                    if (isMirrored) {
+                      ty = -ty;
+                      trot = -trot;
+                    }
 
                     sMirror.baseTargetX = tx * p.cos(angle) - ty * p.sin(angle);
                     sMirror.baseTargetY = tx * p.sin(angle) + ty * p.cos(angle);
                     sMirror.baseTargetRot = trot + angle;
-                    sMirror.type = 'rect';
                     sMirror.targetW = s0.targetW;
                     sMirror.targetH = s0.targetH;
                   }
                 }
-              } else if (visualParams.shakeMode === 'geometric_web') {
+                // ==========================================
+                // 4. SETUP: GEOMETRIC WEB
+                // Pre-calculates nearest neighbor connections
+                // ==========================================
+              } else if (visualParams.shakeMode === "geometric_web") {
                 let connections = [];
                 for (let i = 0; i < shards.length; i++) {
                   let s = shards[i];
                   let dists = [];
                   for (let j = 0; j < shards.length; j++) {
                     if (i === j) continue;
-                    let dSq = (s.x - shards[j].x)**2 + (s.y - shards[j].y)**2;
-                    dists.push({j, dSq});
+                    let dSq =
+                      (s.x - shards[j].x) ** 2 + (s.y - shards[j].y) ** 2;
+                    dists.push({ j, dSq });
                   }
-                  dists.sort((a,b) => a.dSq - b.dSq);
-                  if (dists[0]) connections.push({i1: i, i2: dists[0].j});
-                  if (dists[1]) connections.push({i1: i, i2: dists[1].j});
-                  
+                  dists.sort((a, b) => a.dSq - b.dSq);
+                  if (dists[0]) connections.push({ i1: i, i2: dists[0].j });
+                  if (dists[1]) connections.push({ i1: i, i2: dists[1].j });
+
                   s.baseTargetX = s.x;
                   s.baseTargetY = s.y;
                   s.baseTargetRot = s.rot;
-                  s.type = 'rect'; // Force rectangular aesthetic
+                  s.type = "rect"; // Force rectangular aesthetic
                   s.targetW = s.originalW * scaleMult * dragRatioX * 0.7;
                   s.targetH = s.originalH * scaleMult * dragRatioY * 0.7;
                 }
@@ -757,63 +873,78 @@
           let time = p.millis() * 0.001;
           for (let i = 0; i < shards.length; i++) {
             let s = shards[i];
-            if (visualParams.shakeMode === 'perlin') {
+            // ==========================================
+            // PHYSICS TICK: PERLIN (FLUID)
+            // Evaluates noise fields for flowing motion
+            // ==========================================
+            if (visualParams.shakeMode === "perlin") {
               let bSize = visualParams.baseSize || shards.length;
               let sliceIdx = Math.floor(i / bSize);
               let k = i % bSize;
-              
+
               if (sliceIdx === 0) {
-                  s.jumped = false;
-                  // Randomly respawn particles to prevent them from merging into a single sink
-                  if (p.random() < 0.008) { 
-                      let spawnDist = p.random(10, p.width * 0.25);
-                      let spawnAngle = p.random(0, p.TWO_PI);
-                      s.baseTargetX = p.cos(spawnAngle) * spawnDist;
-                      s.baseTargetY = p.sin(spawnAngle) * spawnDist;
-                      s.trail = [];
-                      s.jumped = true;
-                  }
+                s.jumped = false;
+                // Randomly respawn particles to prevent them from merging into a single sink
+                if (p.random() < 0.008) {
+                  let spawnDist = p.random(10, p.width * 0.25);
+                  let spawnAngle = p.random(0, p.TWO_PI);
+                  s.baseTargetX = p.cos(spawnAngle) * spawnDist;
+                  s.baseTargetY = p.sin(spawnAngle) * spawnDist;
+                  s.trail = [];
+                  s.jumped = true;
+                }
 
-                  let noiseScale = 0.005;
-                  let angle = p.noise(s.baseTargetX * noiseScale, s.baseTargetY * noiseScale, time * 0.2) * p.TWO_PI * 4;
-                  let speed = 2.0;
-                  s.baseTargetX += p.cos(angle) * speed;
-                  s.baseTargetY += p.sin(angle) * speed;
-                  
-                  let d = p.dist(0, 0, s.baseTargetX, s.baseTargetY);
-                  if (d > p.width * 0.4) {
-                      s.baseTargetX *= 0.98;
-                      s.baseTargetY *= 0.98;
-                  }
-                  
-                  s.targetX = s.baseTargetX;
-                  s.targetY = s.baseTargetY;
-                  s.targetRot = angle;
+                let noiseScale = 0.005;
+                let angle =
+                  p.noise(
+                    s.baseTargetX * noiseScale,
+                    s.baseTargetY * noiseScale,
+                    time * 0.2,
+                  ) *
+                  p.TWO_PI *
+                  4;
+                let speed = 0.4;
+                s.baseTargetX += p.cos(angle) * speed;
+                s.baseTargetY += p.sin(angle) * speed;
+
+                let d = p.dist(0, 0, s.baseTargetX, s.baseTargetY);
+                if (d > p.width * 0.4) {
+                  s.baseTargetX *= 0.98;
+                  s.baseTargetY *= 0.98;
+                }
+
+                s.targetX = s.baseTargetX;
+                s.targetY = s.baseTargetY;
+                s.targetRot = angle;
               } else {
-                  let rootShard = shards[k];
-                  if (rootShard.jumped) {
-                      s.trail = [];
-                  }
+                let rootShard = shards[k];
+                if (rootShard.jumped) {
+                  s.trail = [];
+                }
 
-                  let tx = rootShard.targetX;
-                  let ty = rootShard.targetY;
-                  let trot = rootShard.targetRot;
-                  
-                  let angleMod = (p.TWO_PI / (visualParams.slices || 1)) * sliceIdx;
-                  let isMirrored = sliceIdx % 2 === 1;
-                  
-                  if (isMirrored) { ty = -ty; trot = -trot; }
-                  
-                  s.targetX = tx * p.cos(angleMod) - ty * p.sin(angleMod);
-                  s.targetY = tx * p.sin(angleMod) + ty * p.cos(angleMod);
-                  s.targetRot = trot + angleMod;
-                  
-                  s.baseTargetX = s.targetX;
-                  s.baseTargetY = s.targetY;
+                let tx = rootShard.targetX;
+                let ty = rootShard.targetY;
+                let trot = rootShard.targetRot;
+
+                let angleMod =
+                  (p.TWO_PI / (visualParams.slices || 1)) * sliceIdx;
+                let isMirrored = sliceIdx % 2 === 1;
+
+                if (isMirrored) {
+                  ty = -ty;
+                  trot = -trot;
+                }
+
+                s.targetX = tx * p.cos(angleMod) - ty * p.sin(angleMod);
+                s.targetY = tx * p.sin(angleMod) + ty * p.cos(angleMod);
+                s.targetRot = trot + angleMod;
+
+                s.baseTargetX = s.targetX;
+                s.baseTargetY = s.targetY;
               }
-              
+
               if (!s.trail) s.trail = [];
-              s.trail.push({x: s.targetX, y: s.targetY});
+              s.trail.push({ x: s.targetX, y: s.targetY });
               if (s.trail.length > 25) s.trail.shift();
             } else {
               let breathCycle =
@@ -925,33 +1056,45 @@
         }
         p.rotate(globalRotation);
 
-        if (visualParams.shakeMode === 'geometric_web' && visualParams.webConnections && currentVisualPhase === 'bloom') {
-            let lineCol = p.color(borderHex);
-            lineCol.setAlpha(100);
-            p.stroke(lineCol);
-            p.strokeWeight(1.0);
-            for (let c of visualParams.webConnections) {
-                let p1 = shards[c.i1];
-                let p2 = shards[c.i2];
-                if (p1 && p2) {
-                    p.line(p1.x, p1.y, p2.x, p2.y);
-                }
+        // ==========================================
+        // DRAW LOOP: GEOMETRIC WEB LINES
+        // Only drawn when settled into bloom phase
+        // ==========================================
+        if (
+          visualParams.shakeMode === "geometric_web" &&
+          visualParams.webConnections &&
+          currentVisualPhase === "bloom"
+        ) {
+          let lineCol = p.color(borderHex);
+          lineCol.setAlpha(100);
+          p.stroke(lineCol);
+          p.strokeWeight(1.0);
+          for (let c of visualParams.webConnections) {
+            let p1 = shards[c.i1];
+            let p2 = shards[c.i2];
+            if (p1 && p2) {
+              p.line(p1.x, p1.y, p2.x, p2.y);
             }
-        } else if (visualParams.shakeMode === 'perlin') {
-            for (let s of shards) {
-                if (s.trail && s.trail.length > 1) {
-                    p.noFill();
-                    let c = p.color(s.color);
-                    c.setAlpha( (s.opacity || 255) * 0.5 );
-                    p.stroke(c);
-                    p.strokeWeight(s.w * 0.8);
-                    p.beginShape();
-                    for (let pt of s.trail) {
-                        p.vertex(pt.x, pt.y);
-                    }
-                    p.endShape();
-                }
+          }
+          // ==========================================
+          // DRAW LOOP: PERLIN (FLUID) TRAILS
+          // Draws the trailing lines behind particles
+          // ==========================================
+        } else if (visualParams.shakeMode === "perlin") {
+          for (let s of shards) {
+            if (s.trail && s.trail.length > 1) {
+              p.noFill();
+              let c = p.color(s.color);
+              c.setAlpha((s.opacity || 255) * 0.5);
+              p.stroke(c);
+              p.strokeWeight(s.w * 0.8);
+              p.beginShape();
+              for (let pt of s.trail) {
+                p.vertex(pt.x, pt.y);
+              }
+              p.endShape();
             }
+          }
         }
 
         for (let s of shards) {
@@ -961,7 +1104,7 @@
             p.rotate(s.rot);
 
             let mode = s.fillMode || "solid";
-            
+
             if (mode === "solid") {
               let c = p.color(s.color);
               c.setAlpha(s.opacity || 255);
@@ -977,17 +1120,17 @@
               p.noStroke();
               let ctx = p.drawingContext;
               // Create a linear gradient from top to bottom of the shape
-              let grad = ctx.createLinearGradient(0, -s.h/2, 0, s.h/2);
-              
+              let grad = ctx.createLinearGradient(0, -s.h / 2, 0, s.h / 2);
+
               let c1 = p.color(s.color);
               c1.setAlpha(s.opacity || 255);
-              
+
               let c2 = p.color(s.color);
               c2.setAlpha(0); // Fade to transparent
-              
+
               grad.addColorStop(0, c1.toString());
               grad.addColorStop(1, c2.toString());
-              
+
               ctx.fillStyle = grad;
             }
 
@@ -1030,6 +1173,9 @@
             p.rectMode(p.CORNER);
             p.rect(0, 0, p.width, p.height);
           }
+        }
+        if (currentVisualPhase === "drawing") {
+          tracker.draw();
         }
 
         if (saveTriggered) {

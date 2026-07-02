@@ -18,10 +18,11 @@
     hasDrawing,
     journalSaveTrigger,
     journalCancelTrigger,
+    saveVisualTrigger,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
-  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2 } from "lucide-svelte";
+  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2, Download } from "lucide-svelte";
 
   let menuOpen = false;
   const themes = [
@@ -359,6 +360,15 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "home" && $visualPhase === "bloom"}
+        on:click|stopPropagation={() => saveVisualTrigger.update(n => n + 1)}
+        aria-label="Save Visual"
+      >
+        <Download size={18} />
+      </button>
+
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "home" && $visualPhase === "bloom"}
         on:click|stopPropagation={handleStartOver}
         aria-label="Start Over"
       >
@@ -605,7 +615,7 @@
     }
   }
 
-  @media (max-width: 360px) {
+  @media (max-width: 480px) {
     .bottom-nav {
       width: 110px;
     }

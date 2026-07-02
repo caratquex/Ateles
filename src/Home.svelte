@@ -303,12 +303,12 @@
                 </button>
                 <button
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
-                  'grid'
+                  'matrix'
                     ? 'bg-accent text-text-inverse'
                     : 'bg-transparent text-text-primary'}"
-                  on:click={() => shakeMode.set("grid")}
+                  on:click={() => shakeMode.set("matrix")}
                 >
-                  Grid
+                  Matrix
                 </button>
                 <button
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===

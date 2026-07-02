@@ -32,7 +32,7 @@ export const strokeOpacity = writable(1.0);
 export const fillMode = writable('solid');
 
 // 'chaos', 'orbits', 'perlin', 'grid', 'geometric_web'
-export const shakeMode = writable('orbits');
+export const shakeMode = writable('chaos');
 
 
 // Journal entries
