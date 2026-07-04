@@ -16,12 +16,23 @@ export const visualPhase = writable('drawing');
 // 'ellipse', 'rect', 'line'
 export const strokeType = writable('rect');
 
+// custom character for stamp_char
+export const stampChar = writable('A');
+
 // '#000000', '#888888', '#ffffff'
 export const strokeColor = writable('#000000');
+
+// Brush size multiplier (0.2 to 3.0)
+export const strokeSize = writable(1.0);
+
+// Brush opacity multiplier (0.1 to 1.0)
+export const strokeOpacity = writable(1.0);
 
 // 'solid', 'stroke', 'gradient'
 export const fillMode = writable('solid');
 
+// 'chaos', 'orbits', 'perlin', 'matrix', 'geometric_web', 'mandala_wave'
+export const shakeMode = writable('chaos');
 
 
 // Journal entries
@@ -53,3 +64,11 @@ export const isCameraActive = writable(false);
 
 // Fullscreen mode for viewing the visual without UI
 export const isFullscreenVisual = writable(false);
+
+// Tracks if there is active drawing on the canvas
+export const hasDrawing = writable(false);
+
+// Triggers for bottom-row action buttons in journal editor
+export const journalSaveTrigger = writable(0);
+export const journalCancelTrigger = writable(0);
+

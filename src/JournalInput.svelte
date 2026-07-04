@@ -1,15 +1,72 @@
 <script>
   import { supabase } from './lib/supabase.js';
-  import { appState, journalEntries, currentAtelesData, currentUser } from './store.js';
+  import { appState, journalEntries, currentAtelesData, currentUser, activeEntryId, journalSaveTrigger, journalCancelTrigger } from './store.js';
+  import { onMount, onDestroy } from 'svelte';
 
   let title = '';
   let content = '';
   let loading = false;
   let errorMsg = '';
 
-  async function save() {
+  let entryId = $activeEntryId;
+  let autosaveStatus = 'Saved'; // 'Saved', 'Saving...', 'Unsaved changes', 'Error saving'
+  let autosaveTimeout;
+  let isInitialLoad = true;
+
+  let unsubSave;
+  let unsubCancel;
+
+  onMount(() => {
+    // Reset triggers to prevent immediate redirection from historical values
+    journalSaveTrigger.set(0);
+    journalCancelTrigger.set(0);
+
+    if (entryId) {
+      const entry = $journalEntries.find(e => e.id === entryId);
+      if (entry) {
+        title = entry.title || '';
+        content = entry.content || '';
+        if (entry.atelesData) {
+          currentAtelesData.set(entry.atelesData);
+        }
+      }
+    }
+
+    // Subscribe to global bottom-row triggers
+    unsubSave = journalSaveTrigger.subscribe(val => {
+      if (val > 0) {
+        handleDone();
+      }
+    });
+
+    unsubCancel = journalCancelTrigger.subscribe(val => {
+      if (val > 0) {
+        handleBack();
+      }
+    });
+
+    setTimeout(() => {
+      isInitialLoad = false;
+    }, 200);
+  });
+
+  onDestroy(() => {
+    if (unsubSave) unsubSave();
+    if (unsubCancel) unsubCancel();
+  });
+
+  function triggerAutosave() {
     if (!title && !content) return;
-    loading = true;
+    autosaveStatus = 'Unsaved changes';
+    clearTimeout(autosaveTimeout);
+    autosaveTimeout = setTimeout(async () => {
+      await performAutosave();
+    }, 1500);
+  }
+
+  async function performAutosave() {
+    if (!title && !content) return;
+    autosaveStatus = 'Saving...';
     errorMsg = '';
 
     const entryData = {
@@ -21,62 +78,154 @@
 
     if ($currentUser) {
       try {
-        const { data, error } = await supabase
-          .from('journal_entries')
-          .insert([entryData])
-          .select()
-          .single();
+        if (entryId) {
+          // Update existing record
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .update(entryData)
+            .eq('id', entryId)
+            .select()
+            .single();
 
-        if (error) {
-          console.error('Error saving journal entry:', error);
-          errorMsg = `Failed to save: ${error.message || 'Unknown error'}`;
-          loading = false;
-          return;
+          if (error) {
+            console.error('Error auto-saving journal entry:', error);
+            autosaveStatus = 'Error saving';
+            errorMsg = `Failed to auto-save: ${error.message || 'Unknown error'}`;
+            return;
+          }
+
+          const localEntry = {
+            id: data.id,
+            title: data.title,
+            content: data.content,
+            created_at: data.created_at || new Date().toISOString(),
+            date: new Date(data.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+            atelesData: data.visual_data
+          };
+
+          journalEntries.update(entries => {
+            const idx = entries.findIndex(e => e.id === entryId);
+            if (idx !== -1) {
+              const updated = [...entries];
+              updated[idx] = localEntry;
+              return updated;
+            }
+            return [...entries, localEntry];
+          });
+
+          autosaveStatus = 'Saved';
+        } else {
+          // Insert new record
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .insert([entryData])
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error auto-saving journal entry:', error);
+            autosaveStatus = 'Error saving';
+            errorMsg = `Failed to auto-save: ${error.message || 'Unknown error'}`;
+            return;
+          }
+
+          entryId = data.id;
+          activeEntryId.set(entryId);
+
+          const localEntry = {
+            id: data.id,
+            title: data.title,
+            content: data.content,
+            created_at: data.created_at || new Date().toISOString(),
+            date: new Date(data.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+            atelesData: data.visual_data
+          };
+
+          journalEntries.update(entries => [...entries, localEntry]);
+          autosaveStatus = 'Saved';
         }
-
-        // Update local store chronologically with the database generated ID
-        const localEntry = {
-          id: data.id,
-          title: data.title,
-          content: data.content,
-          created_at: data.created_at || new Date().toISOString(),
-          date: new Date(data.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
-          atelesData: data.visual_data
-        };
-        journalEntries.update(entries => [...entries, localEntry]);
-        loading = false;
-        appState.set('gallery');
-        return;
       } catch (err) {
-        console.error('Unexpected error saving entry:', err);
-        errorMsg = 'An unexpected error occurred while saving.';
-        loading = false;
-        return;
+        console.error('Unexpected error auto-saving entry:', err);
+        autosaveStatus = 'Error saving';
+        errorMsg = 'An unexpected error occurred while auto-saving.';
       }
     } else {
-      // Fallback for non-authenticated testing
-      const localEntry = {
-        id: Date.now(),
-        title: entryData.title,
-        content: entryData.content,
-        created_at: new Date().toISOString(),
-        date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
-        atelesData: entryData.ateles_data
-      };
-      journalEntries.update(entries => [...entries, localEntry]);
-      loading = false;
-      appState.set('gallery');
+      // Local storage test/fallback mode
+      if (entryId) {
+        const localEntry = {
+          id: entryId,
+          title: entryData.title,
+          content: entryData.content,
+          created_at: new Date().toISOString(),
+          date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+          atelesData: entryData.visual_data
+        };
+        journalEntries.update(entries => {
+          const idx = entries.findIndex(e => e.id === entryId);
+          if (idx !== -1) {
+            const updated = [...entries];
+            updated[idx] = localEntry;
+            return updated;
+          }
+          return [...entries, localEntry];
+        });
+      } else {
+        entryId = Date.now();
+        activeEntryId.set(entryId);
+        const localEntry = {
+          id: entryId,
+          title: entryData.title,
+          content: entryData.content,
+          created_at: new Date().toISOString(),
+          date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+          atelesData: entryData.visual_data
+        };
+        journalEntries.update(entries => [...entries, localEntry]);
+      }
+      autosaveStatus = 'Saved';
     }
+  }
+
+  async function handleDone() {
+    loading = true;
+    clearTimeout(autosaveTimeout);
+    if (autosaveStatus === 'Unsaved changes') {
+      await performAutosave();
+    }
+    activeEntryId.set(null);
+    appState.set('gallery');
     loading = false;
+  }
+
+  async function handleBack() {
+    clearTimeout(autosaveTimeout);
+    if (autosaveStatus === 'Unsaved changes') {
+      await performAutosave();
+    }
+    activeEntryId.set(null);
     appState.set('gallery');
   }
 
-  function post() {
-    save();
+  $: {
+    if (!isInitialLoad && (title || content)) {
+      triggerAutosave();
+    }
   }
+
+  $: wordCount = content ? content.trim().split(/\s+/).filter(Boolean).length : 0;
+  $: charCount = content ? content.length : 0;
 </script>
 
 <div class="journal-container" in:fade={{ duration: 500 }}>
+  <header class="editor-header">
+    <div class="status-indicator">
+      {#if autosaveStatus === 'Saving...'}
+        <span class="pulse-dot"></span>
+      {/if}
+      {autosaveStatus}
+    </div>
+  </header>
+
   <h1 class="header-title">How was your day?</h1>
   
   {#if errorMsg}
@@ -92,22 +241,20 @@
       placeholder="Title of your day..." 
       bind:value={title} 
       disabled={loading}
+      maxlength="100"
     />
     <textarea 
       class="content-input" 
       placeholder="Reflect on your thoughts here..." 
       bind:value={content}
       disabled={loading}
+      maxlength="2500"
     ></textarea>
-  </div>
-  
-  <div class="actions">
-    <button class="action-btn secondary" on:click={save} disabled={loading || (!title && !content)}>
-      {loading ? 'Saving...' : 'Save'}
-    </button>
-    <button class="action-btn primary" on:click={post} disabled={loading || (!title && !content)}>
-      {loading ? 'Posting...' : 'Post'}
-    </button>
+    <div class="editor-footer">
+      <span class="counter-text {charCount >= 2200 ? (charCount >= 2500 ? 'at-limit' : 'near-limit') : ''}">
+        {wordCount} {wordCount === 1 ? 'word' : 'words'} &nbsp;•&nbsp; {charCount.toLocaleString()}/2,500 chars
+      </span>
+    </div>
   </div>
 </div>
 
@@ -125,7 +272,7 @@
     z-index: 10;
     display: flex;
     flex-direction: column;
-    padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
+    padding: var(--page-padding-top) var(--page-padding-x) 108px;
     pointer-events: auto;
   }
 
@@ -195,56 +342,84 @@
     display: none;
   }
 
+  .editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-2);
+    margin-top: auto;
+    font-size: var(--font-caption);
+    flex-shrink: 0;
+  }
+
+  .counter-text {
+    color: var(--color-text-tertiary);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color var(--duration-normal) var(--easing-default);
+  }
+
+  .counter-text.near-limit {
+    color: #D97706;
+  }
+
+  .counter-text.at-limit {
+    color: #DC2626;
+    animation: shake 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+
   .title-input::placeholder, .content-input::placeholder {
     color: var(--color-text-secondary);
   }
 
-  .actions {
+  .editor-header {
     display: flex;
-    gap: var(--space-3);
-    margin-top: auto;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    margin-bottom: var(--space-4);
     flex-shrink: 0;
   }
 
-  @media (min-width: 48rem) {
-    .actions {
-      gap: var(--space-4);
-    }
-  }
-
-  .action-btn {
-    flex: 1;
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-md);
-    font-size: var(--font-body-lg);
+  .status-indicator {
+    font-size: var(--font-caption);
+    color: var(--color-text-secondary);
     font-weight: var(--weight-medium);
-    letter-spacing: 0.02em;
-    transition: all var(--duration-normal) var(--easing-default);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  @media (min-width: 48rem) {
-    .action-btn {
-      padding: var(--space-4);
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--color-accent);
+    border-radius: var(--radius-circle);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.5);
     }
-  }
-
-  .secondary {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--color-text-primary);
-  }
-
-  .secondary:hover {
-    background: rgba(0, 0, 0, 0.08);
-  }
-
-  .primary {
-    background: var(--color-accent);
-    color: var(--color-text-inverse);
-    box-shadow: var(--shadow-md);
-  }
-
-  .primary:hover {
-    box-shadow: var(--shadow-hover);
-    transform: translateY(-1px);
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 6px rgba(0, 0, 0, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    }
   }
 </style>

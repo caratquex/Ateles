@@ -11,11 +11,11 @@
     activeEntryId,
     clearCanvasTrigger,
     saveVisualTrigger,
-    isFullscreenVisual
+    isFullscreenVisual,
   } from "./store.js";
 
-  $: entry = $activeEntryId 
-    ? $journalEntries.find(e => e.id === $activeEntryId) 
+  $: entry = $activeEntryId
+    ? $journalEntries.find((e) => e.id === $activeEntryId)
     : $journalEntries[$journalEntries.length - 1];
 
   const LAYOUT_COUNT = 5;
@@ -65,28 +65,32 @@
       // Horizontal swipe
       cycleLayout(dx > 0 ? 1 : -1);
     } else if (absDx < 12 && absDy < 12 && dt < 300) {
-      // Tap / click
-      goHome();
+      // Tap / click to toggle fullscreen
+      isFullscreenVisual.set(true);
     }
   }
 
   function handleTouchStart(e) {
+    if (e.target.closest("button")) return;
     if (e.touches.length === 1) {
       pointerDown(e.touches[0].clientX, e.touches[0].clientY);
     }
   }
 
   function handleTouchEnd(e) {
+    if (e.target.closest("button")) return;
     if (e.changedTouches.length === 1) {
       pointerUp(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     }
   }
 
   function handleMouseDown(e) {
+    if (e.target.closest("button")) return;
     pointerDown(e.clientX, e.clientY);
   }
 
   function handleMouseUp(e) {
+    if (e.target.closest("button")) return;
     pointerUp(e.clientX, e.clientY);
   }
 
@@ -97,24 +101,26 @@
 
   function startNewAteles() {
     activeEntryId.set(null);
-    clearCanvasTrigger.update(v => v + 1);
+    clearCanvasTrigger.update((v) => v + 1);
     journalLayout.set(2);
     appState.set("home");
   }
 
   function saveVisual() {
-    saveVisualTrigger.update(v => v + 1);
+    saveVisualTrigger.update((v) => v + 1);
   }
 
   async function handleShare() {
-    const canvas = document.querySelector('.p5-container canvas');
+    const canvas = document.querySelector(".p5-container canvas");
     if (!canvas) {
       saveVisual();
       return;
     }
 
     try {
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/png"),
+      );
       if (!blob) throw new Error("Could not create image blob");
 
       const file = new File([blob], "Ateles_Visual.png", { type: "image/png" });
@@ -122,7 +128,7 @@
       const shareData = {
         title: titleText,
         text: `Check out my ego transformation: ${titleText} - created with Ateles!`,
-        files: [file]
+        files: [file],
       };
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -137,19 +143,33 @@
       saveVisual();
     }
   }
+
+  let scrollTop = 0;
+  let contentEl;
+  $: solidOpacity = Math.min(scrollTop / 150, 0.85);
+  $: {
+    if (($journalLayout !== undefined || $activeEntryId !== undefined) && contentEl) {
+      contentEl.scrollTop = 0;
+      scrollTop = 0;
+    }
+  }
 </script>
 
 <div
   class="view-container layout-{$journalLayout}"
   in:fade={{ duration: 500 }}
   role="presentation"
-  on:touchstart={handleTouchStart}
-  on:touchend={handleTouchEnd}
-  on:mousedown={handleMouseDown}
-  on:mouseup={handleMouseUp}
+  on:touchstart|stopPropagation={handleTouchStart}
+  on:touchend|stopPropagation={handleTouchEnd}
+  on:mousedown|stopPropagation={handleMouseDown}
+  on:mouseup|stopPropagation={handleMouseUp}
+  on:click|stopPropagation
 >
+  <div class="gradient-overlay"></div>
+  <div class="solid-overlay" style="opacity: {solidOpacity};"></div>
+
   {#if entry}
-    <div class="content">
+    <div class="content" bind:this={contentEl} on:scroll={(e) => scrollTop = e.target.scrollTop}>
       <h1 class="title">{entry.title}</h1>
       <p class="date">{entry.date}</p>
       <p class="body-text">{entry.content}</p>
@@ -160,29 +180,6 @@
       <p>No entries yet. Tap to go back.</p>
     </div>
   {/if}
-
-  <div class="fixed bottom-8 left-0 w-full flex flex-wrap justify-center gap-2 sm:gap-4 z-50 px-4">
-    <button 
-      class="py-3 px-4 sm:py-4 sm:px-6 bg-surface text-text-primary rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border border-solid border-border cursor-pointer"
-      on:click={handleShare}
-    >
-      Share
-    </button>
-    <button 
-      class="py-3 px-4 sm:py-4 sm:px-6 bg-accent text-text-inverse rounded-pill text-[1rem] sm:text-[1.1rem] font-medium tracking-[0.02em] shadow-lg transition-transform hover:-translate-y-1 hover:shadow-hover border-none cursor-pointer"
-      on:click={startNewAteles}
-    >
-      New Ateles
-    </button>
-  </div>
-
-  <button
-    class="pointer-events-auto absolute top-6 left-6 z-[100] bg-surface/50 backdrop-blur-sm border border-border text-text-primary p-2 rounded-circle cursor-pointer shadow-sm hover:bg-surface transition-all flex items-center justify-center"
-    on:click={() => isFullscreenVisual.set(true)}
-    title="View Fullscreen"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-fullscreen-icon lucide-fullscreen"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>
-  </button>
 </div>
 
 <style>
@@ -202,11 +199,44 @@
     flex-direction: column;
   }
 
+  .gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Gradient from bottom (fully opaque background color) to middle (transparent) */
+    background: linear-gradient(
+      to top,
+      var(--color-bg) 0%,
+      var(--color-bg) 35%,
+      transparent 65%
+    );
+    pointer-events: none;
+    z-index: 1;
+    transition: background var(--duration-slow) var(--easing-out);
+  }
+
+  .solid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-bg);
+    pointer-events: none;
+    z-index: 1;
+    transition: background-color var(--duration-slow) var(--easing-out);
+  }
+
   .content {
+    position: relative;
+    z-index: 2;
     transition: all var(--duration-slow) var(--easing-out);
     max-height: 85vh;
     overflow-y: auto;
     scrollbar-width: none; /* Firefox */
+    padding-bottom: 108px;
   }
   .content::-webkit-scrollbar {
     display: none; /* Safari/Chrome */
@@ -226,6 +256,7 @@
     opacity: 0.6;
     pointer-events: none;
     transition: opacity var(--duration-slow) var(--easing-default);
+    z-index: 2;
   }
 
   /* ── Typography ─────────────────────────────────────── */
