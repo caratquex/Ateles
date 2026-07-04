@@ -791,6 +791,88 @@
                   s.targetH = s.originalH * scaleMult * dragRatioY * 0.7;
                 }
                 visualParams.webConnections = connections;
+              } else if (visualParams.shakeMode === "mandala_wave") {
+                // ==========================================
+                // 5. SETUP: MANDALA WAVE
+                // Groups shards by shape type, then distributes
+                // them into separate concentric orbits.
+                // Rings undulate and counter-rotate.
+                // ==========================================
+                let ringSpacing = 28;
+                
+                // Group shards by shape type
+                let groups = {};
+                for (let i = 0; i < activeCount; i++) {
+                  let s = shards[i];
+                  if (!groups[s.type]) {
+                    groups[s.type] = [];
+                  }
+                  groups[s.type].push({
+                    shard: s,
+                    d: p.dist(0, 0, s.x, s.y)
+                  });
+                }
+
+                // Sort shards within each group by distance, and calculate average distance
+                let groupList = [];
+                for (let type in groups) {
+                  let arr = groups[type];
+                  arr.sort((a, b) => a.d - b.d);
+                  
+                  let sum = arr.reduce((acc, curr) => acc + curr.d, 0);
+                  let avg = sum / arr.length;
+                  groupList.push({
+                    type: type,
+                    shards: arr.map(item => item.shard),
+                    avgD: avg
+                  });
+                }
+
+                // Sort groups by average distance (innermost first)
+                groupList.sort((a, b) => a.avgD - b.avgD);
+
+                let currentRingIndex = 0;
+
+                // Distribute each group into its own set of rings (no mixed types in any ring)
+                for (let g of groupList) {
+                  let typeShards = g.shards;
+                  let M = typeShards.length;
+                  
+                  // Target density ~12 particles per ring
+                  let ringsNeeded = Math.max(1, Math.ceil(M / 12));
+                  let baseParticlesPerRing = Math.ceil(M / ringsNeeded);
+
+                  for (let r = 0; r < ringsNeeded; r++) {
+                    let startIndex = r * baseParticlesPerRing;
+                    let endIndex = Math.min(M, (r + 1) * baseParticlesPerRing);
+                    let countInThisRing = endIndex - startIndex;
+                    if (countInThisRing <= 0) continue;
+
+                    let baseR = (currentRingIndex + 1) * ringSpacing * scaleMult;
+
+                    for (let j = 0; j < countInThisRing; j++) {
+                      let s = typeShards[startIndex + j];
+                      let theta = (j / countInThisRing) * p.TWO_PI;
+
+                      s.ringIndex = currentRingIndex;
+                      s.ringTheta = theta;
+                      s.ringBaseR = baseR;
+
+                      s.baseTargetX = p.cos(theta) * baseR;
+                      s.baseTargetY = p.sin(theta) * baseR;
+                      s.baseTargetRot = theta + p.PI / 2;
+
+                      // Uniform compact size
+                      let sz = p.constrain(s.originalW * scaleMult * 0.9, 4, 22);
+                      s.targetW = sz;
+                      s.targetH = sz;
+
+                      // Fade outer rings slightly
+                      s.opacity = p.map(currentRingIndex, 0, 12, 220, 100, true);
+                    }
+                    currentRingIndex++;
+                  }
+                }
               } else {
                 // 'chaos' mode
                 for (let i = 0; i < slices; i++) {
@@ -946,6 +1028,33 @@
               if (!s.trail) s.trail = [];
               s.trail.push({ x: s.targetX, y: s.targetY });
               if (s.trail.length > 25) s.trail.shift();
+            } else if (visualParams.shakeMode === "mandala_wave") {
+              // ==========================================
+              // PHYSICS TICK: MANDALA WAVE
+              // Rings undulate radially + counter-rotate;
+              // odd rings CW, even rings CCW for a gear effect.
+              // Pure trig per shard — no allocations.
+              // ==========================================
+              let waveAmp = 8;         // radial undulation pixels
+              let waveFreq = 0.5;      // how fast rings breathe
+              let driftSpeed = 0.018;  // angular drift speed
+
+              let ringIndex = s.ringIndex || 0;
+              let ringBaseR = s.ringBaseR || 40;
+
+              // Alternate CW / CCW per ring
+              let direction = ringIndex % 2 === 0 ? 1 : -1;
+              let driftAngle = direction * time * driftSpeed * (1 + ringIndex * 0.05);
+
+              // Radial undulation, staggered per ring so they don't all pulse together
+              let wave = p.sin(time * waveFreq + ringIndex * 0.7) * waveAmp;
+              let r = ringBaseR + wave;
+
+              let theta = (s.ringTheta || 0) + driftAngle;
+
+              s.targetX = p.cos(theta) * r;
+              s.targetY = p.sin(theta) * r;
+              s.targetRot = theta + p.PI / 2;
             } else {
               let breathCycle =
                 p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) *

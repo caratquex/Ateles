@@ -18,7 +18,7 @@
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
-  const brushPalettes = [
+  let brushPalettes = [
     { name: "Monochrome", colors: ["#000000", "#888888", "#ffffff"] },
     { name: "Vibrant", colors: ["#E53935", "#1E88E5", "#FDD835"] },
     { name: "Pastel", colors: ["#F48FB1", "#80CBC4", "#CE93D8"] },
@@ -27,6 +27,7 @@
     { name: "Cyberpunk", colors: ["#00E5FF", "#FF2D78", "#0D0D0D"] },
     { name: "Retro", colors: ["#4A6741", "#C75B3A", "#E8A838"] },
     { name: "Bauhaus", colors: ["#F7B731", "#1A3A8F", "#D62828"] },
+    { name: "Free", colors: ["#E53935", "#1E88E5", "#FDD835"] },
   ];
   let currentPaletteIndex = 0;
   let activePalette = brushPalettes[currentPaletteIndex];
@@ -319,6 +320,15 @@
                 >
                   Web
                 </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'mandala_wave'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("mandala_wave")}
+                >
+                  Mandala
+                </button>
               </div>
             </div>
 
@@ -455,6 +465,25 @@
               >
               </button>
             {/each}
+            {#if activePalette.name === "Free"}
+              <div class="relative w-6 h-6 rounded-circle border border-border bg-surface hover:bg-surface-hover cursor-pointer shadow-sm flex items-center justify-center transition-transform duration-normal ease-default hover:scale-110" title="Edit selected color">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                <input
+                  type="color"
+                  value={$strokeColor}
+                  class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  on:input={(e) => {
+                    let activeIdx = activePalette.colors.indexOf($strokeColor);
+                    if (activeIdx === -1) {
+                      activeIdx = 0;
+                    }
+                    brushPalettes[currentPaletteIndex].colors[activeIdx] = e.target.value;
+                    brushPalettes = brushPalettes;
+                    strokeColor.set(e.target.value);
+                  }}
+                />
+              </div>
+            {/if}
           </div>
         </div>
       </div>
