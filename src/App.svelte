@@ -325,6 +325,15 @@
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
             on:click={goGallery}>Gallery</button
           >
+          {#if $appState === "home"}
+            <button
+              class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+              on:click={() => {
+                saveVisualTrigger.update((n) => n + 1);
+                menuOpen = false;
+              }}>Download Visual</button
+            >
+          {/if}
           {#if $currentUser}
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"

@@ -15,6 +15,7 @@
     strokeOpacity,
     stampChar,
     shakeMode,
+    saveVisualTrigger,
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
 
@@ -84,6 +85,10 @@
     activeEntryId.set(null);
     clearCanvasTrigger.update((v) => v + 1);
     journalLayout.set(2);
+  }
+
+  function saveVisual() {
+    saveVisualTrigger.update((v) => v + 1);
   }
 
   const currentDate = new Date();
@@ -328,6 +333,15 @@
                   on:click={() => shakeMode.set("mandala_wave")}
                 >
                   Mandala
+                </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
+                  'emblem'
+                    ? 'bg-accent text-text-inverse'
+                    : 'bg-transparent text-text-primary'}"
+                  on:click={() => shakeMode.set("emblem")}
+                >
+                  Emblem
                 </button>
               </div>
             </div>

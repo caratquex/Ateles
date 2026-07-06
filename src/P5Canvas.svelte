@@ -206,6 +206,9 @@
           } else {
             rot = p.random(-0.15, 0.15); // Slight organic tilt, but keeps plus upright
           }
+        } else if (currentStrokeType === "line") {
+          w = (len + 10) * sizeMult; // slight overlap
+          h = 4 * sizeMult; // consistent thickness
         } else {
           w = (len + 5) * sizeMult;
           h = p.random(2, 6) * sizeMult;
@@ -234,7 +237,7 @@
           baseTargetRot: rot,
           color: currentStrokeColor,
           opacity: strokeOpacity,
-          type: currentStrokeType === "line" ? "rect" : currentStrokeType,
+          type: currentStrokeType,
           fillMode: currentFillMode,
           char: currentStampChar,
         });
@@ -862,15 +865,92 @@
                       s.baseTargetY = p.sin(theta) * baseR;
                       s.baseTargetRot = theta + p.PI / 2;
 
-                      // Uniform compact size
-                      let sz = p.constrain(s.originalW * scaleMult * 0.9, 4, 22);
-                      s.targetW = sz;
-                      s.targetH = sz;
+                      // Uniform compact size, but preserve line thickness
+                      if (s.type === "line") {
+                        s.targetW = p.constrain(s.originalW * scaleMult * 0.9, 10, 40);
+                        s.targetH = s.originalH * scaleMult;
+                      } else {
+                        let sz = p.constrain(s.originalW * scaleMult * 0.9, 4, 22);
+                        s.targetW = sz;
+                        s.targetH = sz;
+                      }
 
                       // Fade outer rings slightly
                       s.opacity = p.map(currentRingIndex, 0, 12, 220, 100, true);
                     }
                     currentRingIndex++;
+                  }
+                }
+              } else if (visualParams.shakeMode === "emblem") {
+                // ==========================================
+                // 6. SETUP: EMBLEM
+                // Sorts by size (largest at back), places largest
+                // at center, and symmetrically arranges the rest
+                // in concentric groups of 4 around the center.
+                // ==========================================
+                
+                // Get active shards and calculate area
+                let emblemShards = [];
+                for (let i = 0; i < activeCount; i++) {
+                  let s = shards[i];
+                  s.area = (s.originalW || s.w) * (s.originalH || s.h);
+                  emblemShards.push(s);
+                }
+                
+                // Sort descending by area
+                emblemShards.sort((a, b) => b.area - a.area);
+                
+                // We actually need to reorder the real `shards` array for z-index to work
+                // in the draw loop. 
+                // We'll replace the first activeCount elements with sorted ones.
+                for (let i = 0; i < activeCount; i++) {
+                  shards[i] = emblemShards[i];
+                }
+                
+                if (activeCount > 0) {
+                  // Center the largest shard
+                  let centerS = shards[0];
+                  centerS.baseTargetX = 0;
+                  centerS.baseTargetY = 0;
+                  centerS.baseTargetRot = 0;
+                  centerS.targetW = centerS.originalW * scaleMult * dragRatioX;
+                  centerS.targetH = centerS.originalH * scaleMult * dragRatioY;
+                  centerS.emblemLayer = 0;
+
+                  let radiusStep = 45 * scaleMult;
+                  let remaining = activeCount - 1;
+                  let idx = 1;
+                  let layerIndex = 0;
+
+                  while (remaining > 0) {
+                    let groupSize = Math.min(4, remaining);
+                    let R = (layerIndex + 1) * radiusStep;
+                    // Alternate axes: diagonals for even layerIndex, cardinals for odd
+                    let startAngle = (layerIndex % 2 === 0) ? p.PI / 4 : 0;
+                    
+                    // If we have an incomplete layer (less than 4), we distribute them symmetrically
+                    let angleStep = (groupSize < 4) ? (p.TWO_PI / groupSize) : (p.PI / 2);
+                    if (groupSize < 4) {
+                       startAngle = 0; // Reset start angle for incomplete layers for perfect symmetry
+                    }
+
+                    for (let j = 0; j < groupSize; j++) {
+                      let s = shards[idx];
+                      let angle = startAngle + j * angleStep;
+                      
+                      s.baseTargetX = R * p.cos(angle);
+                      s.baseTargetY = R * p.sin(angle);
+                      // Point outward from center
+                      s.baseTargetRot = angle;
+                      s.targetW = s.originalW * scaleMult * dragRatioX;
+                      s.targetH = s.originalH * scaleMult * dragRatioY;
+                      s.emblemLayer = layerIndex + 1;
+                      
+                      idx++;
+                    }
+                    
+                    remaining -= groupSize;
+                    layerIndex++;
                   }
                 }
               } else {
@@ -941,6 +1021,10 @@
                 targetH: s.targetH,
                 originalW: s.originalW,
                 originalH: s.originalH,
+                ringIndex: s.ringIndex,
+                ringBaseR: s.ringBaseR,
+                ringTheta: s.ringTheta,
+                emblemLayer: s.emblemLayer,
               }));
               currentAtelesData.set({
                 shards: exportedShards,
@@ -1055,6 +1139,16 @@
               s.targetX = p.cos(theta) * r;
               s.targetY = p.sin(theta) * r;
               s.targetRot = theta + p.PI / 2;
+            } else if (visualParams.shakeMode === "emblem") {
+              // ==========================================
+              // PHYSICS TICK: EMBLEM
+              // Very subtle, organized breathing to keep it
+              // feeling alive without breaking symmetry.
+              // ==========================================
+              let breathScale = 1 + p.sin(time * 0.8 + (s.emblemLayer || 0) * 0.5) * 0.04;
+              s.targetX = s.baseTargetX * breathScale;
+              s.targetY = s.baseTargetY * breathScale;
+              s.targetRot = s.baseTargetRot;
             } else {
               let breathCycle =
                 p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) *
@@ -1244,6 +1338,12 @@
             }
 
             if (s.type === "rect") p.rect(0, 0, s.w, s.h, s.w * 0.1);
+            else if (s.type === "line") {
+              let gap = s.h * 2.5;
+              p.rect(0, 0, s.w, s.h, s.w * 0.1);
+              p.rect(0, -gap, s.w, s.h, s.w * 0.1);
+              p.rect(0, gap, s.w, s.h, s.w * 0.1);
+            }
             else if (s.type === "ellipse") p.ellipse(0, 0, s.w, s.h);
             else if (s.type === "diamond") {
               p.beginShape();
@@ -1276,11 +1376,13 @@
         // Dim background if in journal mode
         if (!saveTriggered) {
           if (currentState === "journal_input") {
+            p.push();
             let c = p.color(bgHex);
             c.setAlpha(200);
             p.fill(c);
             p.rectMode(p.CORNER);
             p.rect(0, 0, p.width, p.height);
+            p.pop();
           }
         }
         if (currentVisualPhase === "drawing") {
