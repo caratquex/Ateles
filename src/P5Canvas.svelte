@@ -21,6 +21,7 @@
     hasDrawing,
     stampChar,
     shakeMode,
+    uploadedImage,
   } from "./store.js";
   import DrawingTracker from "./DrawingTracker.js";
 
@@ -71,6 +72,9 @@
       }, 50);
     });
 
+    let currentUploadedImage = null;
+    const unsubUploadedImage = uploadedImage.subscribe((v) => (currentUploadedImage = v));
+
     let allEntries = [];
     const unsubEntries = journalEntries.subscribe((v) => (allEntries = v));
     let unsubActiveEntry;
@@ -118,6 +122,9 @@
         breathingStyle: "radial",
       };
 
+      let p5TextureImage = null;
+      let loadedImageSrc = null;
+
       unsubActiveEntry = activeEntryId.subscribe((v) => {
         if (v != null) {
           let entry = allEntries.find((e) => e.id === v);
@@ -132,6 +139,11 @@
               orbitYRatio: 1.0,
               breathingStyle: "radial",
             };
+            if (entry.atelesData.uploadedImage) {
+              uploadedImage.set(entry.atelesData.uploadedImage);
+            } else {
+              uploadedImage.set(null);
+            }
             visualPhase.set("bloom");
             appState.set("journal_view");
           }
@@ -214,6 +226,19 @@
           h = p.random(2, 6) * sizeMult;
         }
 
+        let shardColor = currentStrokeColor;
+        let finalFillMode = currentFillMode;
+
+        if (currentFillMode === "image" && p5TextureImage) {
+          let px = Math.floor(p.random(0, p5TextureImage.width));
+          let py = Math.floor(p.random(0, p5TextureImage.height));
+          let c = p5TextureImage.get(px, py);
+          if (c) {
+            shardColor = p.color(c[0], c[1], c[2]).toString('#rrggbb');
+          }
+          finalFillMode = "solid";
+        }
+
         currentStrokeCount++;
         shards.push({
           id: shardCounter++,
@@ -235,10 +260,10 @@
           baseTargetX: px,
           baseTargetY: py,
           baseTargetRot: rot,
-          color: currentStrokeColor,
+          color: shardColor,
           opacity: strokeOpacity,
           type: currentStrokeType,
-          fillMode: currentFillMode,
+          fillMode: finalFillMode,
           char: currentStampChar,
         });
       }
@@ -412,6 +437,23 @@
       };
 
       p.draw = () => {
+        if (currentUploadedImage && loadedImageSrc !== currentUploadedImage) {
+          loadedImageSrc = currentUploadedImage;
+          let nativeImg = new Image();
+          nativeImg.crossOrigin = "Anonymous";
+          nativeImg.onload = () => {
+            let p5Img = p.createImage(nativeImg.width, nativeImg.height);
+            p5Img.drawingContext.drawImage(nativeImg, 0, 0);
+            p5Img.loadPixels(); // Ensure pixels are accessible for get()
+            p5TextureImage = p5Img;
+          };
+          nativeImg.src = currentUploadedImage;
+        }
+        if (!currentUploadedImage && loadedImageSrc) {
+          p5TextureImage = null;
+          loadedImageSrc = null;
+        }
+
         if (saveTriggered) {
           p.clear();
         } else {
@@ -648,67 +690,62 @@
               // Distributes pieces along concentric circles
               // ==========================================
               if (visualParams.shakeMode === "orbits") {
-                // Calculate color statistics for active shards
-                let colorDistances = {};
-                let colorCountsTotal = {};
-                for (let i = 0; i < activeCount; i++) {
-                  let s = shards[i];
-                  let d = p.dist(0, 0, s.x, s.y);
-                  if (!colorDistances[s.color]) {
-                    colorDistances[s.color] = 0;
-                    colorCountsTotal[s.color] = 0;
+                // 1. Sort all active shards by distance from center
+                let activeShards = shards.slice(0, activeCount);
+                activeShards.sort((a, b) => {
+                  let d1 = p.dist(0, 0, a.x, a.y);
+                  let d2 = p.dist(0, 0, b.x, b.y);
+                  return d1 - d2;
+                });
+
+                // 2. Distribute into concentric rings without overlapping
+                let currentRingRadius = p.random(15, 30);
+                let shardIdx = 0;
+
+                while (shardIdx < activeCount) {
+                  // We assign a scale to all dots in this ring
+                  let ringScale = p.random(0.4, 1.2);
+                  
+                  // Estimate max size of dots in this ring to prevent overlap.
+                  // Assume an average base stroke size of around 25px
+                  let estimatedDotSize = 25 * scaleMult * Math.max(dragRatioX, dragRatioY) * ringScale;
+                  
+                  // Radially: push this ring outward so it doesn't overlap the previous ring
+                  let radialPadding = estimatedDotSize * p.random(1.2, 2.0);
+                  let R = currentRingRadius + radialPadding;
+                  currentRingRadius = R; // Save for next iteration
+                  
+                  // Tangentially: calculate how many dots fit along the circumference
+                  let circumference = p.TWO_PI * R;
+                  let arcPadding = estimatedDotSize * p.random(1.2, 2.5);
+                  let capacity = Math.floor(circumference / arcPadding);
+                  if (capacity < 1) capacity = 1;
+
+                  // Take a batch of shards for this ring
+                  let ringShards = [];
+                  for (let i = 0; i < capacity && shardIdx < activeCount; i++) {
+                     ringShards.push(activeShards[shardIdx]);
+                     shardIdx++;
                   }
-                  colorDistances[s.color] += d;
-                  colorCountsTotal[s.color]++;
-                }
 
-                let colorAvgDist = {};
-                for (let c in colorDistances) {
-                  colorAvgDist[c] = colorDistances[c] / colorCountsTotal[c];
-                }
-                let uniqueColors = Object.keys(colorAvgDist).sort(
-                  (a, b) => colorAvgDist[a] - colorAvgDist[b],
-                );
+                  // Assign targets for this ring
+                  for (let i = 0; i < ringShards.length; i++) {
+                     let s = ringShards[i];
+                     let theta = (i / ringShards.length) * p.TWO_PI;
+                     
+                     // Very minor jitter so it doesn't look completely robotic, but small enough to not overlap
+                     let finalR = R + p.random(-estimatedDotSize*0.1, estimatedDotSize*0.1);
 
-                let minOrbitRadius = 30;
-                let orbitSpacing = 40;
-
-                let colorCounters = {};
-                for (let c of uniqueColors) colorCounters[c] = 0;
-
-                for (let idx = 0; idx < activeCount; idx++) {
-                  let s = shards[idx];
-
-                  let cIdx = uniqueColors.indexOf(s.color);
-                  let countForColor = colorCountsTotal[s.color];
-                  let currentC = colorCounters[s.color]++;
-
-                  // Distribute evenly around FULL circle
-                  let theta = (currentC / countForColor) * p.TWO_PI;
-
-                  // Add tiny random variation (+/- 5)
-                  let rVariation = p.random(-5, 5);
-                  let R = minOrbitRadius + cIdx * orbitSpacing + rVariation;
-
-                  s.baseTargetX =
-                    R *
-                    p.cos(theta) *
-                    scaleMult *
-                    spreadMult *
-                    visualParams.orbitXRatio;
-                  s.baseTargetY =
-                    R *
-                    p.sin(theta) *
-                    scaleMult *
-                    spreadMult *
-                    visualParams.orbitYRatio;
-
-                  // Follow orbit tangent
-                  s.baseTargetRot = theta + p.PI / 2;
-
-                  // Maintain size proportional to original
-                  s.targetW = s.originalW * scaleMult * dragRatioX;
-                  s.targetH = s.originalH * scaleMult * dragRatioY;
+                     s.baseTargetX = finalR * p.cos(theta) * scaleMult * spreadMult * visualParams.orbitXRatio;
+                     s.baseTargetY = finalR * p.sin(theta) * scaleMult * spreadMult * visualParams.orbitYRatio;
+                     
+                     // Follow orbit tangent
+                     s.baseTargetRot = theta + p.PI / 2;
+                     
+                     // Maintain size proportional to original
+                     s.targetW = s.originalW * scaleMult * dragRatioX * ringScale;
+                     s.targetH = s.originalH * scaleMult * dragRatioY * ringScale;
+                  }
                 }
                 // ==========================================
                 // 2. SETUP: PERLIN (FLUID)
@@ -1030,6 +1067,7 @@
                 shards: exportedShards,
                 bgHex: bgHex,
                 visualParams: visualParams,
+                uploadedImage: currentUploadedImage,
               });
             }
           } else {
@@ -1308,7 +1346,7 @@
 
             let mode = s.fillMode || "solid";
 
-            if (mode === "solid") {
+            if (mode === "solid" || mode === "image") {
               let c = p.color(s.color);
               c.setAlpha(s.opacity || 255);
               p.fill(c);
@@ -1417,6 +1455,7 @@
       unsubEntries();
       unsubActiveEntry();
       unsubSave();
+      unsubUploadedImage();
       if (unsubClear) unsubClear();
       if (p5Instance) p5Instance.remove();
     };

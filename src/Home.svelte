@@ -16,8 +16,55 @@
     stampChar,
     shakeMode,
     saveVisualTrigger,
+    uploadedImage,
   } from "./store.js";
   import HandTracker from "./HandTracker.svelte";
+
+  let fileInput;
+  let isUploadingTexture = false;
+  function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+      isUploadingTexture = true;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const MAX_SIZE = 64;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with lower quality for performance
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
+          uploadedImage.set(dataUrl);
+          isUploadingTexture = false;
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      isUploadingTexture = false;
+    }
+  }
 
   let brushPalettes = [
     { name: "Monochrome", colors: ["#000000", "#888888", "#ffffff"] },
@@ -352,7 +399,7 @@
                 class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
                 >Fill Mode</span
               >
-              <div class="grid grid-cols-3 gap-2">
+              <div class="grid grid-cols-2 gap-2">
                 <button
                   class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default {$fillMode ===
                   'solid'
@@ -380,6 +427,25 @@
                 >
                   Gradient
                 </button>
+                <button
+                  class="pointer-events-auto py-1.5 px-2 border border-border rounded-pill text-[0.75rem] font-medium cursor-pointer flex items-center justify-center gap-1 transition-all duration-normal ease-default {$fillMode ===
+                  'image'
+                    ? 'bg-surface-hover text-text-primary border-text-secondary'
+                    : 'bg-transparent text-text-secondary'}"
+                  on:click={() => {
+                    if (!$uploadedImage) fileInput.click();
+                    fillMode.set("image");
+                  }}
+                  disabled={isUploadingTexture}
+                >
+                  <span>{isUploadingTexture ? 'Uploading...' : 'Texture'}</span>
+                  {#if $uploadedImage && !isUploadingTexture}
+                    <button class="ml-1 px-1.5 py-0.5 rounded-full bg-text-secondary text-bg hover:bg-accent hover:text-white" on:click|stopPropagation={() => { uploadedImage.set(null); fileInput.value = ''; fillMode.set("solid"); }}>
+                      &times;
+                    </button>
+                  {/if}
+                </button>
+                <input type="file" accept="image/png, image/jpeg" style="display:none;" bind:this={fileInput} on:change={handleImageUpload} />
               </div>
             </div>
 

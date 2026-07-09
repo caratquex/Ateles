@@ -46,7 +46,7 @@
   <div
     class="grid grid-cols-2 sm:grid-cols-3 gap-y-10 gap-x-4 px-4 sm:px-6 max-w-[500px] mx-auto"
   >
-    {#each $journalEntries as entry}
+    {#each [...$journalEntries].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()) as entry}
       <button
         class="flex flex-col items-center bg-transparent border-none cursor-pointer group"
         on:click={() => openJournal(entry.id)}

@@ -59,6 +59,7 @@ export const journalLayout = writable(2);
 // Current shaking intensity/state
 export const shakeIntensity = writable(0);
 export const hasShaken = writable(false);
+export const uploadedImage = writable(null);
 export const cameraShakeIntensity = writable(0);
 export const isCameraActive = writable(false);
 

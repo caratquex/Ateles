@@ -22,9 +22,10 @@
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
-  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2, Download } from "lucide-svelte";
+  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2, Download, Plus } from "lucide-svelte";
 
   let menuOpen = false;
+  let showShareOptions = false;
   const themes = [
     "light",
     "dark",
@@ -141,63 +142,106 @@
     const p5Canvas = document.querySelector(".p5-container canvas");
     if (!p5Canvas) return null;
 
-    const cssWidth = window.innerWidth;
-    const cssHeight = window.innerHeight;
     const canvasWidth = p5Canvas.width;
     const canvasHeight = p5Canvas.height;
+    const dpr = window.devicePixelRatio || 1;
 
     const outCanvas = document.createElement("canvas");
     outCanvas.width = canvasWidth;
     outCanvas.height = canvasHeight;
     const ctx = outCanvas.getContext("2d");
 
+    // Draw the Ateles visual
     ctx.drawImage(p5Canvas, 0, 0, canvasWidth, canvasHeight);
 
-    const viewContainer = document.querySelector(".view-container");
-    if (!viewContainer) return outCanvas;
-
-    let styles = "";
-    document.querySelectorAll("style").forEach(s => {
-      styles += s.innerHTML + "\n";
+    // Fetch active journal entry
+    let currentEntry = null;
+    const unsub1 = activeEntryId.subscribe(id => {
+      const unsub2 = journalEntries.subscribe(entries => {
+        currentEntry = entries.find(e => e.id === id);
+      });
+      unsub2();
     });
-    styles = styles.replace(/url\([^)]+\)/g, "none");
+    unsub1();
 
-    const serializer = new XMLSerializer();
-    const clone = viewContainer.cloneNode(true);
-    clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-    clone.style.width = cssWidth + "px";
-    clone.style.height = cssHeight + "px";
+    if (!currentEntry) return outCanvas;
 
-    const hint = clone.querySelector(".hint");
-    if (hint) hint.remove();
-    const solidOverlay = clone.querySelector(".solid-overlay");
-    if (solidOverlay) solidOverlay.style.opacity = "0";
+    // Fetch theme colors
+    const style = getComputedStyle(document.documentElement);
+    const bgHex = style.getPropertyValue("--color-bg").trim() || "#FFFFFF";
+    const textPrimary = style.getPropertyValue("--color-text-primary").trim() || "#000000";
+    const textSecondary = style.getPropertyValue("--color-text-secondary").trim() || "#666666";
 
-    const xhtml = serializer.serializeToString(clone);
+    // Draw bottom gradient overlay
+    const gradient = ctx.createLinearGradient(0, canvasHeight * 0.3, 0, canvasHeight);
+    gradient.addColorStop(0, "transparent");
+    gradient.addColorStop(0.35, bgHex); 
+    gradient.addColorStop(1, bgHex);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, canvasHeight * 0.3, canvasWidth, canvasHeight * 0.7);
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cssWidth}" height="${cssHeight}">
-      <` + `style><![CDATA[\n${styles}\n]]></` + `style>
-      <foreignObject width="100%" height="100%">${xhtml}</foreignObject>
-    </svg>`;
+    // Draw Text
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    
+    let currentY = canvasHeight * 0.55;
+    let centerX = canvasWidth / 2;
 
-    return new Promise((resolve) => {
-      const img = new Image();
-      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-        URL.revokeObjectURL(url);
-        resolve(outCanvas);
-      };
-      img.onerror = () => {
-        resolve(outCanvas);
-      };
-      img.src = url;
-    });
+    // Title
+    ctx.font = `300 ${48 * dpr}px 'Outfit', sans-serif`;
+    ctx.fillStyle = textPrimary;
+    ctx.fillText(currentEntry.title || "Untitled", centerX, currentY);
+    currentY += 60 * dpr;
+
+    // Date
+    ctx.font = `500 ${14 * dpr}px 'Outfit', sans-serif`;
+    ctx.fillStyle = textSecondary;
+    ctx.fillText(currentEntry.date || "", centerX, currentY);
+    currentY += 40 * dpr;
+
+    // Content (wrapped)
+    ctx.font = `400 ${18 * dpr}px 'Outfit', sans-serif`;
+    ctx.fillStyle = textPrimary;
+    const maxWidth = Math.min(800 * dpr, canvasWidth * 0.85);
+    const lineHeight = 30 * dpr;
+    
+    const text = currentEntry.content || "";
+    const paragraphs = text.split('\n');
+    
+    for (let i = 0; i < paragraphs.length; i++) {
+        let words = paragraphs[i].split(' ');
+        let line = '';
+        for (let n = 0; n < words.length; n++) {
+            let testLine = line + words[n] + ' ';
+            let metrics = ctx.measureText(testLine);
+            let testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                ctx.fillText(line, centerX, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, centerX, currentY);
+        currentY += lineHeight;
+    }
+
+    return outCanvas;
   }
 
-  async function handleShare() {
-    const canvas = await captureCombinedCanvas();
+  async function handleShare(includeJournalPage = true) {
+    let canvas;
+    if (includeJournalPage) {
+      canvas = await captureCombinedCanvas();
+    } else {
+      const p5Canvas = document.querySelector(".p5-container canvas");
+      if (!p5Canvas) return;
+      canvas = document.createElement("canvas");
+      canvas.width = p5Canvas.width;
+      canvas.height = p5Canvas.height;
+      canvas.getContext("2d").drawImage(p5Canvas, 0, 0);
+    }
     if (!canvas) {
       return;
     }
@@ -429,12 +473,20 @@
               if ($appState === "journal_input") {
                 journalCancelTrigger.update(n => n + 1);
               } else {
+                if ($appState === "journal_view" || $appState === "gallery") {
+                  handleStartOver();
+                }
                 appState.set("home");
               }
             }}
           >
-            <Pen size={18} />
-            <span>Ateles</span>
+            {#if $appState === "gallery" || $appState === "journal_view"}
+              <Plus size={18} />
+              <span>New Ateles</span>
+            {:else}
+              <Pen size={18} />
+              <span>Ateles</span>
+            {/if}
           </button>
         {/if}
       </div>
@@ -443,11 +495,18 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "journal_view"}
-        on:click|stopPropagation={handleShare}
-        aria-label="Share Journal"
+        on:click|stopPropagation={() => showShareOptions = !showShareOptions}
+        aria-label="Share Options"
       >
         <Share2 size={18} />
       </button>
+
+      {#if showShareOptions}
+        <div class="share-dropdown">
+          <button on:click|stopPropagation={() => { handleShare(false); showShareOptions = false; }}>Save Ateles visual only</button>
+          <button on:click|stopPropagation={() => { handleShare(true); showShareOptions = false; }}>Save the whole journal page</button>
+        </div>
+      {/if}
 
       <button
         class="nav-icon-btn"
@@ -593,6 +652,41 @@
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
     border-radius: var(--radius-circle);
+  }
+
+  .share-dropdown {
+    position: absolute;
+    bottom: 70px;
+    right: 50px;
+    background: var(--color-glass);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: var(--shadow-lg);
+    z-index: 101;
+  }
+
+  .share-dropdown button {
+    background: transparent;
+    border: none;
+    padding: 10px 14px;
+    color: var(--color-text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+  }
+
+  .share-dropdown button:hover {
+    background: var(--color-surface);
   }
 
   .nav-icon-btn:hover {
