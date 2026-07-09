@@ -49,6 +49,7 @@
       if (error) {
         console.error("Error fetching journal entries:", error.message);
       } else if (data) {
+        console.log("fetchJournalEntries returned", data.length, "rows.");
         const mappedEntries = data.map((item) => ({
           id: item.id,
           title: item.title,
@@ -70,6 +71,15 @@
     }
   }
 
+  let lastUserId = null;
+  $: if ($currentUser && $currentUser.id !== lastUserId) {
+    lastUserId = $currentUser.id;
+    fetchJournalEntries();
+  } else if (!$currentUser && lastUserId !== null) {
+    lastUserId = null;
+    journalEntries.set([]);
+  }
+
   onMount(async () => {
 
     // Check initial session
@@ -78,7 +88,6 @@
     } = await supabase.auth.getSession();
     if (session) {
       currentUser.set(session.user);
-      await fetchJournalEntries();
       if ($appState === "auth") {
         if (session.user.user_metadata?.username) {
           appState.set("home");
@@ -94,7 +103,6 @@
     supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         currentUser.set(session.user);
-        await fetchJournalEntries();
         if ($appState === "auth") {
           if (session.user.user_metadata?.username) {
             appState.set("home");

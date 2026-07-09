@@ -912,8 +912,8 @@
                         s.targetH = sz;
                       }
 
-                      // Fade outer rings slightly
-                      s.opacity = p.map(currentRingIndex, 0, 12, 220, 100, true);
+                      // Keep 100% opacity
+                      s.opacity = 255;
                     }
                     currentRingIndex++;
                   }

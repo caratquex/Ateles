@@ -1,11 +1,51 @@
 <script>
+  import { onMount } from "svelte";
+  import { supabase } from "./lib/supabase.js";
   import {
     journalEntries,
     activeEntryId,
     appState,
     clearCanvasTrigger,
     journalLayout,
+    currentUser,
   } from "./store.js";
+
+  let isLoading = true;
+
+  onMount(async () => {
+    isLoading = true;
+    console.log("Gallery mounted, fetching entries...");
+    if (!$currentUser) {
+      console.log("No user found in Gallery.");
+      isLoading = false;
+      return;
+    }
+    const { data, error } = await supabase
+      .from("journal_entries")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error("Gallery fetch error:", error);
+      alert("Error fetching gallery: " + error.message);
+    } else if (data) {
+      console.log("Gallery fetch returned", data.length, "rows.");
+      const mappedEntries = data.map((item) => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        created_at: item.created_at,
+        date: new Date(item.created_at).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "long",
+          day: "numeric",
+        }),
+        atelesData: item.visual_data,
+      }));
+      journalEntries.set(mappedEntries);
+    }
+    isLoading = false;
+  });
 
   /** @param {string|number} id */
   function openJournal(id) {
