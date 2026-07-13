@@ -3,6 +3,9 @@ import { writable } from 'svelte/store';
 // 'home', 'journal_input', 'journal_view', 'auth'
 export const appState = writable('auth');
 
+// Tracks if we are viewing the onboarding flow purely as a tutorial
+export const isTutorialMode = writable(false);
+
 // Currently authenticated Supabase user
 /** @type {import('svelte/store').Writable<import('@supabase/supabase-js').User | null>} */
 export const currentUser = writable(null);

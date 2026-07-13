@@ -19,10 +19,23 @@
     journalSaveTrigger,
     journalCancelTrigger,
     saveVisualTrigger,
+    isTutorialMode,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
-  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2, Download, Plus } from "lucide-svelte";
+  import {
+    LayoutGrid,
+    Pen,
+    Edit,
+    Check,
+    BookOpen,
+    Share2,
+    X,
+    Maximize,
+    Trash2,
+    Download,
+    Plus,
+  } from "lucide-svelte";
 
   let menuOpen = false;
   let showShareOptions = false;
@@ -35,6 +48,8 @@
     "cyberpunk",
     "retro",
     "bauhaus",
+    "nature",
+    "candy",
   ];
   let entriesLoading = false;
 
@@ -81,7 +96,6 @@
   }
 
   onMount(async () => {
-
     // Check initial session
     const {
       data: { session },
@@ -130,6 +144,7 @@
   }
 
   function goHome() {
+    isTutorialMode.set(false);
     activeEntryId.set(null);
     clearCanvasTrigger.update((v) => v + 1);
     appState.set("home");
@@ -137,11 +152,13 @@
   }
 
   function goGallery() {
+    isTutorialMode.set(false);
     appState.set("gallery");
     menuOpen = false;
   }
 
   async function handleLogout() {
+    isTutorialMode.set(false);
     await supabase.auth.signOut();
     menuOpen = false;
   }
@@ -164,9 +181,9 @@
 
     // Fetch active journal entry
     let currentEntry = null;
-    const unsub1 = activeEntryId.subscribe(id => {
-      const unsub2 = journalEntries.subscribe(entries => {
-        currentEntry = entries.find(e => e.id === id);
+    const unsub1 = activeEntryId.subscribe((id) => {
+      const unsub2 = journalEntries.subscribe((entries) => {
+        currentEntry = entries.find((e) => e.id === id);
       });
       unsub2();
     });
@@ -177,13 +194,20 @@
     // Fetch theme colors
     const style = getComputedStyle(document.documentElement);
     const bgHex = style.getPropertyValue("--color-bg").trim() || "#FFFFFF";
-    const textPrimary = style.getPropertyValue("--color-text-primary").trim() || "#000000";
-    const textSecondary = style.getPropertyValue("--color-text-secondary").trim() || "#666666";
+    const textPrimary =
+      style.getPropertyValue("--color-text-primary").trim() || "#000000";
+    const textSecondary =
+      style.getPropertyValue("--color-text-secondary").trim() || "#666666";
 
     // Draw bottom gradient overlay
-    const gradient = ctx.createLinearGradient(0, canvasHeight * 0.3, 0, canvasHeight);
+    const gradient = ctx.createLinearGradient(
+      0,
+      canvasHeight * 0.3,
+      0,
+      canvasHeight,
+    );
     gradient.addColorStop(0, "transparent");
-    gradient.addColorStop(0.35, bgHex); 
+    gradient.addColorStop(0.35, bgHex);
     gradient.addColorStop(1, bgHex);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, canvasHeight * 0.3, canvasWidth, canvasHeight * 0.7);
@@ -191,7 +215,7 @@
     // Draw Text
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    
+
     let currentY = canvasHeight * 0.55;
     let centerX = canvasWidth / 2;
 
@@ -212,27 +236,27 @@
     ctx.fillStyle = textPrimary;
     const maxWidth = Math.min(800 * dpr, canvasWidth * 0.85);
     const lineHeight = 30 * dpr;
-    
+
     const text = currentEntry.content || "";
-    const paragraphs = text.split('\n');
-    
+    const paragraphs = text.split("\n");
+
     for (let i = 0; i < paragraphs.length; i++) {
-        let words = paragraphs[i].split(' ');
-        let line = '';
-        for (let n = 0; n < words.length; n++) {
-            let testLine = line + words[n] + ' ';
-            let metrics = ctx.measureText(testLine);
-            let testWidth = metrics.width;
-            if (testWidth > maxWidth && n > 0) {
-                ctx.fillText(line, centerX, currentY);
-                line = words[n] + ' ';
-                currentY += lineHeight;
-            } else {
-                line = testLine;
-            }
+      let words = paragraphs[i].split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + " ";
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          ctx.fillText(line, centerX, currentY);
+          line = words[n] + " ";
+          currentY += lineHeight;
+        } else {
+          line = testLine;
         }
-        ctx.fillText(line, centerX, currentY);
-        currentY += lineHeight;
+      }
+      ctx.fillText(line, centerX, currentY);
+      currentY += lineHeight;
     }
 
     return outCanvas;
@@ -261,11 +285,11 @@
       if (!blob) throw new Error("Could not create image blob");
 
       const file = new File([blob], "Ateles_Visual.png", { type: "image/png" });
-      
+
       let activeTitle = "My Ateles";
-      const unsubActive = activeEntryId.subscribe(id => {
-        const unsubEntries = journalEntries.subscribe(entries => {
-          const entry = entries.find(e => e.id === id);
+      const unsubActive = activeEntryId.subscribe((id) => {
+        const unsubEntries = journalEntries.subscribe((entries) => {
+          const entry = entries.find((e) => e.id === id);
           if (entry && entry.title) activeTitle = entry.title;
         });
         unsubEntries();
@@ -311,7 +335,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<main 
+<main
   class="w-screen h-[100dvh] overflow-hidden relative"
   on:click={() => {
     if ($isFullscreenVisual) {
@@ -320,8 +344,6 @@
   }}
 >
   <P5Canvas />
-
-
 
   {#if !$isFullscreenVisual}
     {#if $appState === "auth"}
@@ -367,15 +389,23 @@
         >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
-          >
-          <button
-            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
             on:click={goHome}>Home</button
           >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
             on:click={goGallery}>Gallery</button
+          >
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={() => {
+              isTutorialMode.set(true);
+              appState.set("onboarding");
+              menuOpen = false;
+            }}>Tutorial</button
+          >
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
           >
           {#if $appState === "home"}
             <button
@@ -383,7 +413,7 @@
               on:click={() => {
                 saveVisualTrigger.update((n) => n + 1);
                 menuOpen = false;
-              }}>Download Visual</button
+              }}>Download Drawing</button
             >
           {/if}
           {#if $currentUser}
@@ -412,7 +442,8 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "journal_input"}
-        on:click|stopPropagation={() => journalCancelTrigger.update(n => n + 1)}
+        on:click|stopPropagation={() =>
+          journalCancelTrigger.update((n) => n + 1)}
         aria-label="Cancel"
       >
         <X size={18} />
@@ -421,7 +452,7 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "home" && $visualPhase === "bloom"}
-        on:click|stopPropagation={() => saveVisualTrigger.update(n => n + 1)}
+        on:click|stopPropagation={() => saveVisualTrigger.update((n) => n + 1)}
         aria-label="Save Visual"
       >
         <Download size={18} />
@@ -437,13 +468,19 @@
       </button>
 
       <!-- Center Navbar -->
-      <div class="bottom-nav" class:compact={$appState === "journal_view" || $appState === "journal_input"}>
+      <div
+        class="bottom-nav"
+        class:compact={$appState === "journal_view" ||
+          $appState === "journal_input"}
+      >
         <button
           class="nav-btn"
-          class:active={$appState === "gallery" || $appState === "journal_view" || $appState === "journal_input"}
+          class:active={$appState === "gallery" ||
+            $appState === "journal_view" ||
+            $appState === "journal_input"}
           on:click|stopPropagation={() => {
             if ($appState === "journal_input") {
-              journalCancelTrigger.update(n => n + 1);
+              journalCancelTrigger.update((n) => n + 1);
             } else {
               activeEntryId.set(null);
               appState.set("gallery");
@@ -479,7 +516,7 @@
             class:active={$appState === "home"}
             on:click|stopPropagation={() => {
               if ($appState === "journal_input") {
-                journalCancelTrigger.update(n => n + 1);
+                journalCancelTrigger.update((n) => n + 1);
               } else {
                 if ($appState === "journal_view" || $appState === "gallery") {
                   handleStartOver();
@@ -503,7 +540,7 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "journal_view"}
-        on:click|stopPropagation={() => showShareOptions = !showShareOptions}
+        on:click|stopPropagation={() => (showShareOptions = !showShareOptions)}
         aria-label="Share Options"
       >
         <Share2 size={18} />
@@ -511,14 +548,25 @@
 
       {#if showShareOptions}
         <div class="share-dropdown">
-          <button on:click|stopPropagation={() => { handleShare(false); showShareOptions = false; }}>Save Ateles visual only</button>
-          <button on:click|stopPropagation={() => { handleShare(true); showShareOptions = false; }}>Save the whole journal page</button>
+          <button
+            on:click|stopPropagation={() => {
+              handleShare(false);
+              showShareOptions = false;
+            }}>Save Ateles visual only</button
+          >
+          <button
+            on:click|stopPropagation={() => {
+              handleShare(true);
+              showShareOptions = false;
+            }}>Save the whole journal page</button
+          >
         </div>
       {/if}
 
       <button
         class="nav-icon-btn"
-        class:show={$appState === "journal_view" || ($appState === "home" && $visualPhase === "bloom")}
+        class:show={$appState === "journal_view" ||
+          ($appState === "home" && $visualPhase === "bloom")}
         on:click|stopPropagation={() => isFullscreenVisual.set(true)}
         aria-label="View Fullscreen"
       >
@@ -528,7 +576,7 @@
       <button
         class="nav-icon-btn active-accent"
         class:show={$appState === "journal_input"}
-        on:click|stopPropagation={() => journalSaveTrigger.update(n => n + 1)}
+        on:click|stopPropagation={() => journalSaveTrigger.update((n) => n + 1)}
         aria-label="Done"
       >
         <Check size={18} />
@@ -570,7 +618,11 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 4px;
-    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.4s ease;
+    transition:
+      width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.4s ease;
   }
 
   .bottom-nav.compact {
@@ -580,7 +632,9 @@
   .bottom-nav .nav-btn span {
     max-width: 100px;
     opacity: 1;
-    transition: max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+    transition:
+      max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.25s ease;
     overflow: hidden;
     white-space: nowrap;
     display: inline-block;
@@ -610,7 +664,9 @@
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+      gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .nav-btn:hover:not(.active) {
@@ -642,7 +698,7 @@
     box-shadow: none;
     margin: 0;
     padding: 0;
-    transition: 
+    transition:
       width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
       transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
       opacity 0.3s ease,

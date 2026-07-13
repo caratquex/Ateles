@@ -190,6 +190,38 @@
   --color-glass:           rgba(26, 58, 143, 0.65);
 }
 
+/* ── Nature Theme ────────────────────────────────── */
+:root[data-theme="nature"] {
+  --color-bg:              #F7F4D5; /* Beige */
+  --color-surface:         #839958; /* Moss green */
+  --color-accent:          #0A3323; /* Dark green */
+  --color-text-primary:    #0A3323;
+  --color-text-secondary:  #506742;
+  --color-text-tertiary:   #839958;
+  --color-text-inverse:    #F7F4D5;
+  --color-border:          rgba(10, 51, 35, 0.15);
+  --color-border-strong:   rgba(10, 51, 35, 0.30);
+  --color-overlay:         rgba(247, 244, 213, 0.78);
+  --color-glass:           rgba(131, 153, 88, 0.60);
+}
+
+/* ── Candy Theme ────────────────────────────────── */
+:root[data-theme="candy"] {
+  --color-bg:              #86DCE0; /* Sky blue */
+  --color-surface:         #FC5971; /* Candy pink */
+  --color-accent:          #DDD658; /* Lemon yellow */
+  --color-text-primary:    #FC5971;
+  --color-text-secondary:  #DDD658;
+  --color-text-tertiary:   #86DCE0;
+  --color-text-inverse:    #FC5971;
+  --color-border:          rgba(252, 89, 113, 0.20);
+  --color-border-strong:   rgba(252, 89, 113, 0.40);
+  --color-overlay:         rgba(134, 220, 224, 0.78);
+  --color-glass:           rgba(252, 89, 113, 0.60);
+}
+
+
+
 
 
 /* ── Reset ──────────────────────────────────────────── */
