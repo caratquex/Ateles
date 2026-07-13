@@ -64,7 +64,6 @@
       if (error) {
         console.error("Error fetching journal entries:", error.message);
       } else if (data) {
-        console.log("fetchJournalEntries returned", data.length, "rows.");
         const mappedEntries = data.map((item) => ({
           id: item.id,
           title: item.title,

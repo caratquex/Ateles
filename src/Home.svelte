@@ -73,7 +73,7 @@
     { name: "Earth", colors: ["#CC4A2C", "#2E4D43", "#E5C594"] },
     { name: "Japandi", colors: ["#2F2F2F", "#8C7B6B", "#E8E0D5"] },
     { name: "Cyberpunk", colors: ["#00E5FF", "#FF2D78", "#0D0D0D"] },
-    { name: "Retro", colors: ["#4A6741", "#C75B3A", "#E8A838"] },
+    { name: "Retro", colors: ["#335C67", "#9E2A2B", "#E09F3E"] },
     { name: "Bauhaus", colors: ["#F7B731", "#1A3A8F", "#D62828"] },
     { name: "Nature", colors: ["#0A3323", "#839958", "#F7F4D5"] },
     { name: "Candy", colors: ["#86DCE0", "#FC5971", "#DDD658"] },

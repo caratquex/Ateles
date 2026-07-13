@@ -14,9 +14,7 @@
 
   onMount(async () => {
     isLoading = true;
-    console.log("Gallery mounted, fetching entries...");
     if (!$currentUser) {
-      console.log("No user found in Gallery.");
       isLoading = false;
       return;
     }
@@ -29,7 +27,6 @@
       console.error("Gallery fetch error:", error);
       alert("Error fetching gallery: " + error.message);
     } else if (data) {
-      console.log("Gallery fetch returned", data.length, "rows.");
       const mappedEntries = data.map((item) => ({
         id: item.id,
         title: item.title,
