@@ -1,8 +1,9 @@
 <script>
   import { supabase } from "./lib/supabase.js";
-  import { appState, currentUser } from "./store.js";
+  import { appState, currentUser, isTutorialMode } from "./store.js";
+  import AtelesLogo from "./AtelesLogo.svelte";
 
-  let step = 1; // 1: Username, 2: Questionnaire, 3-5: Tutorial
+  let step = $isTutorialMode ? 3 : 1; // 1: Username, 2: Questionnaire, 3-5: Tutorial
   let username = "";
   let selectedAnswer = "";
   let customAnswer = "";
@@ -33,6 +34,12 @@
 
   async function handleSubmit() {
     if (step === 5) {
+      if ($isTutorialMode) {
+        isTutorialMode.set(false);
+        appState.set("home");
+        return;
+      }
+
       loading = true;
       errorMsg = "";
 
@@ -52,7 +59,10 @@
           currentUser.set(data.user);
         }
       } catch (err) {
-        console.error("Unexpected error:", err.message);
+        console.error(
+          "Unexpected error:",
+          err instanceof Error ? err.message : String(err),
+        );
       } finally {
         loading = false;
       }
@@ -64,7 +74,7 @@
   class="flex items-center justify-center h-full w-full bg-bg z-[200] absolute top-0 left-0"
 >
   <div
-    class="bg-surface p-6 sm:p-8 rounded-xl shadow-xl w-[400px] max-w-[90%] border border-border-default flex flex-col gap-6 relative overflow-hidden"
+    class="glass-panel p-6 sm:p-8 w-[400px] max-w-[90%] flex flex-col gap-6 relative overflow-hidden"
   >
     {#if step === 1}
       <div class="flex flex-col gap-2">
@@ -92,7 +102,7 @@
           id="username"
           type="text"
           bind:value={username}
-          class="bg-bg border border-border-default text-text-primary px-3 py-2 rounded-md outline-none focus:border-text-primary transition-colors"
+          class="bg-bg border border-border text-text-primary px-3 py-2 rounded-lg outline-none focus:border-text-primary transition-colors"
           placeholder="Enter username"
           on:keydown={(e) => e.key === "Enter" && handleNext()}
         />
@@ -101,7 +111,7 @@
       <button
         on:click={handleNext}
         disabled={!username.trim()}
-        class="mt-2 bg-text-primary text-bg font-semibold py-2 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity"
+        class="mt-2 bg-text-primary text-bg font-semibold py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         Continue
       </button>
@@ -132,7 +142,7 @@
           <input
             type="text"
             bind:value={customAnswer}
-            class="mt-2 bg-bg border border-border-default text-text-primary px-3 py-2 rounded-md outline-none focus:border-text-primary transition-colors text-sm"
+            class="mt-2 bg-bg border border-border text-text-primary px-3 py-2 rounded-lg outline-none focus:border-text-primary transition-colors text-sm"
             placeholder="Please specify"
           />
         {/if}
@@ -149,14 +159,14 @@
           on:click={handleNext}
           disabled={!selectedAnswer ||
             (selectedAnswer === "Other" && !customAnswer.trim())}
-          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
         >
           Next
         </button>
       </div>
     {:else if step === 3}
       <h1 class="text-text-primary text-2xl font-bold text-center">
-        1. Draw your ego
+        1. Draw something
       </h1>
       <div class="flex justify-center my-6 h-[100px] items-center">
         <svg width="60" height="60" viewBox="0 0 100 100">
@@ -175,18 +185,25 @@
         </svg>
       </div>
       <p class="text-text-secondary text-center text-[1rem]">
-        Express your current state by drawing freely on the canvas.
+        Express yourself by drawing freely on the canvas.
       </p>
       <div class="flex justify-between mt-6">
         <button
-          on:click={() => (step = 2)}
+          on:click={() => {
+            if ($isTutorialMode) {
+              isTutorialMode.set(false);
+              appState.set("home");
+            } else {
+              step = 2;
+            }
+          }}
           class="text-text-secondary hover:text-text-primary transition-colors text-sm font-medium px-4 py-2 bg-transparent border-none cursor-pointer"
         >
-          Back
+          {$isTutorialMode ? "Exit" : "Back"}
         </button>
         <button
           on:click={handleNext}
-          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity cursor-pointer"
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
         >
           Next
         </button>
@@ -230,7 +247,7 @@
         </button>
         <button
           on:click={handleNext}
-          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity cursor-pointer"
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
         >
           Next
         </button>
@@ -239,16 +256,11 @@
       <h1 class="text-text-primary text-2xl font-bold text-center">
         3. Create your Ateles
       </h1>
-      <div class="flex justify-center my-6 h-[100px] items-center relative">
-        <div
-          class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom"
-        ></div>
-        <div
-          class="w-6 h-6 bg-text-primary rounded-full absolute animate-bloom-delayed"
-        ></div>
+      <div class="flex justify-center my-6 h-[100px] items-center">
+        <AtelesLogo className="w-20 h-20 text-text-primary" />
       </div>
       <p class="text-text-secondary text-center text-[1rem]">
-        Watch your ego transform into an Ateles, then write a journal entry.
+        Watch your drawing transform into an Ateles, record down your journey.
       </p>
 
       {#if errorMsg}
@@ -269,10 +281,12 @@
         <button
           on:click={handleSubmit}
           disabled={loading}
-          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+          class="bg-text-primary text-bg font-semibold py-2 px-6 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
         >
           {#if loading}
             Starting...
+          {:else if $isTutorialMode}
+            Finish
           {:else}
             Begin
           {/if}
@@ -323,24 +337,6 @@
     }
     70% {
       transform: rotate(0deg) translateX(0);
-    }
-  }
-
-  .animate-bloom {
-    animation: bloom 2s ease-out infinite;
-  }
-  .animate-bloom-delayed {
-    animation: bloom 2s ease-out infinite 1s;
-    opacity: 0;
-  }
-  @keyframes bloom {
-    0% {
-      transform: scale(0.5);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(4);
-      opacity: 0;
     }
   }
 </style>

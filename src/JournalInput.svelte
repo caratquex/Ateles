@@ -64,10 +64,14 @@
     }, 1500);
   }
 
+  let currentSavePromise = null;
+
   async function performAutosave() {
-    if (!title && !content) return;
+    if (!title && !content && entryId) return; // Allow first save even if empty
     autosaveStatus = 'Saving...';
     errorMsg = '';
+
+    currentSavePromise = (async () => {
 
     const entryData = {
       user_id: $currentUser ? $currentUser.id : null,
@@ -116,6 +120,25 @@
           autosaveStatus = 'Saved';
         } else {
           // Insert new record
+          let tempId = entryId || ('temp-' + Date.now());
+          entryId = tempId;
+          
+          const optimisticEntry = {
+            id: tempId,
+            title: entryData.title,
+            content: entryData.content,
+            created_at: new Date().toISOString(),
+            date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+            atelesData: entryData.visual_data,
+            optimistic: true
+          };
+
+          journalEntries.update(entries => {
+            const exists = entries.find(e => e.id === tempId);
+            if (!exists) return [...entries, optimisticEntry];
+            return entries;
+          });
+
           const { data, error } = await supabase
             .from('journal_entries')
             .insert([entryData])
@@ -126,22 +149,32 @@
             console.error('Error auto-saving journal entry:', error);
             autosaveStatus = 'Error saving';
             errorMsg = `Failed to auto-save: ${error.message || 'Unknown error'}`;
+            // Optional: remove optimistic entry on failure
             return;
           }
 
+          // Replace temp entry with real data
           entryId = data.id;
-          activeEntryId.set(entryId);
-
-          const localEntry = {
-            id: data.id,
-            title: data.title,
-            content: data.content,
-            created_at: data.created_at || new Date().toISOString(),
-            date: new Date(data.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
-            atelesData: data.visual_data
-          };
-
-          journalEntries.update(entries => [...entries, localEntry]);
+          
+          journalEntries.update(entries => {
+            const updated = [...entries];
+            const idx = updated.findIndex(e => e.id === tempId);
+            const finalEntry = {
+              id: data.id,
+              title: data.title,
+              content: data.content,
+              created_at: data.created_at || new Date().toISOString(),
+              date: new Date(data.created_at || Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+              atelesData: data.visual_data
+            };
+            if (idx !== -1) {
+              updated[idx] = finalEntry;
+            } else {
+              updated.push(finalEntry);
+            }
+            return updated;
+          });
+          
           autosaveStatus = 'Saved';
         }
       } catch (err) {
@@ -184,23 +217,26 @@
       }
       autosaveStatus = 'Saved';
     }
+    })();
+    await currentSavePromise;
+    currentSavePromise = null;
   }
 
   async function handleDone() {
-    loading = true;
     clearTimeout(autosaveTimeout);
-    if (autosaveStatus === 'Unsaved changes') {
-      await performAutosave();
+    
+    if (autosaveStatus === 'Unsaved changes' || (!String(entryId).startsWith('temp-') && !entryId && autosaveStatus !== 'Saving...')) {
+      performAutosave(); // Fire and forget
     }
+    
     activeEntryId.set(null);
     appState.set('gallery');
-    loading = false;
   }
 
   async function handleBack() {
     clearTimeout(autosaveTimeout);
     if (autosaveStatus === 'Unsaved changes') {
-      await performAutosave();
+      performAutosave(); // Fire and forget
     }
     activeEntryId.set(null);
     appState.set('gallery');

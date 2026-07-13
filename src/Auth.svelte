@@ -1,17 +1,19 @@
 <script>
-  import { supabase } from './lib/supabase.js';
-  import { appState, currentUser } from './store.js';
+  import { supabase } from "./lib/supabase.js";
+  import { appState, currentUser } from "./store.js";
+  import AtelesLogo from "./AtelesLogo.svelte";
 
-  let email = '';
-  let password = '';
+  let step = "landing"; // 'landing' | 'auth'
+  let email = "";
+  let password = "";
   let loading = false;
   let isSignUp = false;
-  let errorMsg = '';
+  let errorMsg = "";
 
   async function handleAuth() {
     loading = true;
-    errorMsg = '';
-    
+    errorMsg = "";
+
     if (isSignUp) {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -21,11 +23,9 @@
         errorMsg = error.message;
       } else {
         if (data.user?.identities?.length === 0) {
-          errorMsg = 'Email already taken.';
+          errorMsg = "Email already taken.";
         } else {
-          // Signup successful, usually auto-logs in if email confirmation is disabled
-          // Otherwise, notify them to check email
-          alert('Signup successful! You can now log in.');
+          alert("Signup successful! You can now log in.");
           isSignUp = false;
         }
       }
@@ -36,69 +36,115 @@
       });
       if (error) {
         errorMsg = error.message;
+        alert("Login failed: " + error.message);
+      } else if (data && data.user) {
+        if (!data.session) {
+          errorMsg = "Login unsuccessful. Please verify your email address.";
+          alert(errorMsg);
+        } else {
+          currentUser.set(data.user);
+          if (data.user.user_metadata?.username) {
+            appState.set("home");
+          } else {
+            appState.set("onboarding");
+          }
+        }
       } else {
-        // Success, session will be caught by onAuthStateChange in App.svelte
+        errorMsg = "Login unsuccessful. Please try again.";
+        alert(errorMsg);
       }
     }
     loading = false;
   }
 </script>
 
-<div class="flex items-center justify-center h-full w-full bg-bg z-[200] absolute top-0 left-0">
-  <div class="bg-surface p-6 sm:p-8 rounded-xl shadow-xl w-[400px] max-w-[90%] border border-border-default flex flex-col gap-4">
-    <h1 class="text-text-primary text-2xl font-bold text-center mb-2">
-      {isSignUp ? 'Create an Account' : 'Welcome to Ateles'}
-    </h1>
-    
-    {#if errorMsg}
-      <div class="bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm">
-        {errorMsg}
-      </div>
-    {/if}
-
-    <div class="flex flex-col gap-2">
-      <label for="email" class="text-text-secondary text-sm font-medium">Email</label>
-      <input 
-        id="email" 
-        type="email" 
-        bind:value={email} 
-        class="bg-bg border border-border-default text-text-primary px-3 py-2 rounded-md outline-none focus:border-text-primary transition-colors"
-        placeholder="Enter your email" 
-      />
-    </div>
-
-    <div class="flex flex-col gap-2">
-      <label for="password" class="text-text-secondary text-sm font-medium">Password</label>
-      <input 
-        id="password" 
-        type="password" 
-        bind:value={password} 
-        class="bg-bg border border-border-default text-text-primary px-3 py-2 rounded-md outline-none focus:border-text-primary transition-colors"
-        placeholder="Enter your password" 
-      />
-    </div>
-
-    <button 
-      on:click={handleAuth} 
-      disabled={loading || !email || !password}
-      class="mt-4 bg-text-primary text-bg font-semibold py-2 rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity"
+<div
+  class="flex flex-col items-center justify-center h-full w-full bg-bg z-[200] absolute top-0 left-0 p-6 sm:p-8"
+>
+  {#if step === "landing"}
+    <div
+      class="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
+      on:click={() => (step = "auth")}
     >
-      {#if loading}
-        Loading...
-      {:else if isSignUp}
-        Sign Up
-      {:else}
-        Log In
-      {/if}
-    </button>
-
-    <div class="text-center mt-4">
-      <button 
-        class="text-text-secondary text-sm hover:text-text-primary transition-colors cursor-pointer bg-transparent border-none"
-        on:click={() => { isSignUp = !isSignUp; errorMsg = ''; }}
-      >
-        {isSignUp ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
-      </button>
+      <div class="w-48 h-48 mb-20 animate-[spin_20s_linear_infinite] flex items-center justify-center">
+        <AtelesLogo className="w-full h-full drop-shadow-sm text-black" />
+      </div>
+      <h1 class="text-text-primary text-4xl font-medium mb-4 tracking-wide">
+        Welcome
+      </h1>
+      <p class="text-text-secondary text-sm tracking-wider">Click to start</p>
     </div>
-  </div>
+  {:else}
+    <div
+      class="w-[400px] max-w-[90%] flex flex-col gap-6 items-center animate-[fadeIn_0.3s_ease]"
+    >
+      <div class="w-32 h-32 mb-8 animate-[spin_20s_linear_infinite] flex items-center justify-center">
+        <AtelesLogo className="w-full h-full drop-shadow-sm text-black" />
+      </div>
+
+      {#if errorMsg}
+        <div
+          class="w-full bg-red-500/20 border border-red-500 text-red-500 p-3 rounded-md text-sm"
+        >
+          {errorMsg}
+        </div>
+      {/if}
+
+      <div class="flex flex-col gap-2 w-full">
+        <label for="email" class="text-text-primary text-sm font-medium"
+          >Email</label
+        >
+        <input
+          id="email"
+          type="email"
+          bind:value={email}
+          class="bg-[#E6E6E6] border-none text-text-primary px-4 py-3.5 rounded-xl outline-none focus:ring-2 focus:ring-text-secondary transition-all placeholder:text-gray-400"
+          placeholder="Enter your email"
+        />
+      </div>
+
+      <div class="flex flex-col gap-2 w-full">
+        <label for="password" class="text-text-primary text-sm font-medium"
+          >Password</label
+        >
+        <input
+          id="password"
+          type="password"
+          bind:value={password}
+          class="bg-[#E6E6E6] border-none text-text-primary px-4 py-3.5 rounded-xl outline-none focus:ring-2 focus:ring-text-secondary transition-all placeholder:text-gray-400"
+          placeholder="Enter your password"
+          on:keydown={(e) => e.key === "Enter" && handleAuth()}
+        />
+      </div>
+
+      <button
+        on:click={handleAuth}
+        disabled={loading || !email || !password}
+        class="mt-4 w-3/4 max-w-[200px] bg-text-secondary text-bg font-bold py-3.5 rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity text-base shadow-md"
+      >
+        {#if loading}
+          Loading...
+        {:else if isSignUp}
+          Sign up
+        {:else}
+          Login
+        {/if}
+      </button>
+
+      <div class="text-center mt-2">
+        <span class="text-text-secondary text-sm">
+          {isSignUp ? "Already have an account?" : "Don't have an account?"}
+        </span>
+        <button
+          class="text-text-primary text-sm font-medium hover:underline transition-all cursor-pointer bg-transparent border-none ml-1"
+          on:click={() => {
+            isSignUp = !isSignUp;
+            errorMsg = "";
+          }}
+        >
+          {isSignUp ? "Login" : "Sign up"}
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>

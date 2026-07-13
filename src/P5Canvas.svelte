@@ -21,6 +21,7 @@
     hasDrawing,
     stampChar,
     shakeMode,
+    uploadedImage,
   } from "./store.js";
   import DrawingTracker from "./DrawingTracker.js";
 
@@ -71,6 +72,9 @@
       }, 50);
     });
 
+    let currentUploadedImage = null;
+    const unsubUploadedImage = uploadedImage.subscribe((v) => (currentUploadedImage = v));
+
     let allEntries = [];
     const unsubEntries = journalEntries.subscribe((v) => (allEntries = v));
     let unsubActiveEntry;
@@ -118,6 +122,9 @@
         breathingStyle: "radial",
       };
 
+      let p5TextureImage = null;
+      let loadedImageSrc = null;
+
       unsubActiveEntry = activeEntryId.subscribe((v) => {
         if (v != null) {
           let entry = allEntries.find((e) => e.id === v);
@@ -132,6 +139,11 @@
               orbitYRatio: 1.0,
               breathingStyle: "radial",
             };
+            if (entry.atelesData.uploadedImage) {
+              uploadedImage.set(entry.atelesData.uploadedImage);
+            } else {
+              uploadedImage.set(null);
+            }
             visualPhase.set("bloom");
             appState.set("journal_view");
           }
@@ -206,9 +218,25 @@
           } else {
             rot = p.random(-0.15, 0.15); // Slight organic tilt, but keeps plus upright
           }
+        } else if (currentStrokeType === "line") {
+          w = (len + 10) * sizeMult; // slight overlap
+          h = 4 * sizeMult; // consistent thickness
         } else {
           w = (len + 5) * sizeMult;
           h = p.random(2, 6) * sizeMult;
+        }
+
+        let shardColor = currentStrokeColor;
+        let finalFillMode = currentFillMode;
+
+        if (currentFillMode === "image" && p5TextureImage) {
+          let px = Math.floor(p.random(0, p5TextureImage.width));
+          let py = Math.floor(p.random(0, p5TextureImage.height));
+          let c = p5TextureImage.get(px, py);
+          if (c) {
+            shardColor = p.color(c[0], c[1], c[2]).toString('#rrggbb');
+          }
+          finalFillMode = "solid";
         }
 
         currentStrokeCount++;
@@ -232,10 +260,10 @@
           baseTargetX: px,
           baseTargetY: py,
           baseTargetRot: rot,
-          color: currentStrokeColor,
+          color: shardColor,
           opacity: strokeOpacity,
-          type: currentStrokeType === "line" ? "rect" : currentStrokeType,
-          fillMode: currentFillMode,
+          type: currentStrokeType,
+          fillMode: finalFillMode,
           char: currentStampChar,
         });
       }
@@ -409,6 +437,23 @@
       };
 
       p.draw = () => {
+        if (currentUploadedImage && loadedImageSrc !== currentUploadedImage) {
+          loadedImageSrc = currentUploadedImage;
+          let nativeImg = new Image();
+          nativeImg.crossOrigin = "Anonymous";
+          nativeImg.onload = () => {
+            let p5Img = p.createImage(nativeImg.width, nativeImg.height);
+            p5Img.drawingContext.drawImage(nativeImg, 0, 0);
+            p5Img.loadPixels(); // Ensure pixels are accessible for get()
+            p5TextureImage = p5Img;
+          };
+          nativeImg.src = currentUploadedImage;
+        }
+        if (!currentUploadedImage && loadedImageSrc) {
+          p5TextureImage = null;
+          loadedImageSrc = null;
+        }
+
         if (saveTriggered) {
           p.clear();
         } else {
@@ -645,67 +690,62 @@
               // Distributes pieces along concentric circles
               // ==========================================
               if (visualParams.shakeMode === "orbits") {
-                // Calculate color statistics for active shards
-                let colorDistances = {};
-                let colorCountsTotal = {};
-                for (let i = 0; i < activeCount; i++) {
-                  let s = shards[i];
-                  let d = p.dist(0, 0, s.x, s.y);
-                  if (!colorDistances[s.color]) {
-                    colorDistances[s.color] = 0;
-                    colorCountsTotal[s.color] = 0;
+                // 1. Sort all active shards by distance from center
+                let activeShards = shards.slice(0, activeCount);
+                activeShards.sort((a, b) => {
+                  let d1 = p.dist(0, 0, a.x, a.y);
+                  let d2 = p.dist(0, 0, b.x, b.y);
+                  return d1 - d2;
+                });
+
+                // 2. Distribute into concentric rings without overlapping
+                let currentRingRadius = p.random(15, 30);
+                let shardIdx = 0;
+
+                while (shardIdx < activeCount) {
+                  // We assign a scale to all dots in this ring
+                  let ringScale = p.random(0.4, 1.2);
+                  
+                  // Estimate max size of dots in this ring to prevent overlap.
+                  // Assume an average base stroke size of around 25px
+                  let estimatedDotSize = 25 * scaleMult * Math.max(dragRatioX, dragRatioY) * ringScale;
+                  
+                  // Radially: push this ring outward so it doesn't overlap the previous ring
+                  let radialPadding = estimatedDotSize * p.random(1.2, 2.0);
+                  let R = currentRingRadius + radialPadding;
+                  currentRingRadius = R; // Save for next iteration
+                  
+                  // Tangentially: calculate how many dots fit along the circumference
+                  let circumference = p.TWO_PI * R;
+                  let arcPadding = estimatedDotSize * p.random(1.2, 2.5);
+                  let capacity = Math.floor(circumference / arcPadding);
+                  if (capacity < 1) capacity = 1;
+
+                  // Take a batch of shards for this ring
+                  let ringShards = [];
+                  for (let i = 0; i < capacity && shardIdx < activeCount; i++) {
+                     ringShards.push(activeShards[shardIdx]);
+                     shardIdx++;
                   }
-                  colorDistances[s.color] += d;
-                  colorCountsTotal[s.color]++;
-                }
 
-                let colorAvgDist = {};
-                for (let c in colorDistances) {
-                  colorAvgDist[c] = colorDistances[c] / colorCountsTotal[c];
-                }
-                let uniqueColors = Object.keys(colorAvgDist).sort(
-                  (a, b) => colorAvgDist[a] - colorAvgDist[b],
-                );
+                  // Assign targets for this ring
+                  for (let i = 0; i < ringShards.length; i++) {
+                     let s = ringShards[i];
+                     let theta = (i / ringShards.length) * p.TWO_PI;
+                     
+                     // Very minor jitter so it doesn't look completely robotic, but small enough to not overlap
+                     let finalR = R + p.random(-estimatedDotSize*0.1, estimatedDotSize*0.1);
 
-                let minOrbitRadius = 30;
-                let orbitSpacing = 40;
-
-                let colorCounters = {};
-                for (let c of uniqueColors) colorCounters[c] = 0;
-
-                for (let idx = 0; idx < activeCount; idx++) {
-                  let s = shards[idx];
-
-                  let cIdx = uniqueColors.indexOf(s.color);
-                  let countForColor = colorCountsTotal[s.color];
-                  let currentC = colorCounters[s.color]++;
-
-                  // Distribute evenly around FULL circle
-                  let theta = (currentC / countForColor) * p.TWO_PI;
-
-                  // Add tiny random variation (+/- 5)
-                  let rVariation = p.random(-5, 5);
-                  let R = minOrbitRadius + cIdx * orbitSpacing + rVariation;
-
-                  s.baseTargetX =
-                    R *
-                    p.cos(theta) *
-                    scaleMult *
-                    spreadMult *
-                    visualParams.orbitXRatio;
-                  s.baseTargetY =
-                    R *
-                    p.sin(theta) *
-                    scaleMult *
-                    spreadMult *
-                    visualParams.orbitYRatio;
-
-                  // Follow orbit tangent
-                  s.baseTargetRot = theta + p.PI / 2;
-
-                  // Maintain size proportional to original
-                  s.targetW = s.originalW * scaleMult * dragRatioX;
-                  s.targetH = s.originalH * scaleMult * dragRatioY;
+                     s.baseTargetX = finalR * p.cos(theta) * scaleMult * spreadMult * visualParams.orbitXRatio;
+                     s.baseTargetY = finalR * p.sin(theta) * scaleMult * spreadMult * visualParams.orbitYRatio;
+                     
+                     // Follow orbit tangent
+                     s.baseTargetRot = theta + p.PI / 2;
+                     
+                     // Maintain size proportional to original
+                     s.targetW = s.originalW * scaleMult * dragRatioX * ringScale;
+                     s.targetH = s.originalH * scaleMult * dragRatioY * ringScale;
+                  }
                 }
                 // ==========================================
                 // 2. SETUP: PERLIN (FLUID)
@@ -862,15 +902,92 @@
                       s.baseTargetY = p.sin(theta) * baseR;
                       s.baseTargetRot = theta + p.PI / 2;
 
-                      // Uniform compact size
-                      let sz = p.constrain(s.originalW * scaleMult * 0.9, 4, 22);
-                      s.targetW = sz;
-                      s.targetH = sz;
+                      // Uniform compact size, but preserve line thickness
+                      if (s.type === "line") {
+                        s.targetW = p.constrain(s.originalW * scaleMult * 0.9, 10, 40);
+                        s.targetH = s.originalH * scaleMult;
+                      } else {
+                        let sz = p.constrain(s.originalW * scaleMult * 0.9, 4, 22);
+                        s.targetW = sz;
+                        s.targetH = sz;
+                      }
 
-                      // Fade outer rings slightly
-                      s.opacity = p.map(currentRingIndex, 0, 12, 220, 100, true);
+                      // Keep 100% opacity
+                      s.opacity = 255;
                     }
                     currentRingIndex++;
+                  }
+                }
+              } else if (visualParams.shakeMode === "emblem") {
+                // ==========================================
+                // 6. SETUP: EMBLEM
+                // Sorts by size (largest at back), places largest
+                // at center, and symmetrically arranges the rest
+                // in concentric groups of 4 around the center.
+                // ==========================================
+                
+                // Get active shards and calculate area
+                let emblemShards = [];
+                for (let i = 0; i < activeCount; i++) {
+                  let s = shards[i];
+                  s.area = (s.originalW || s.w) * (s.originalH || s.h);
+                  emblemShards.push(s);
+                }
+                
+                // Sort descending by area
+                emblemShards.sort((a, b) => b.area - a.area);
+                
+                // We actually need to reorder the real `shards` array for z-index to work
+                // in the draw loop. 
+                // We'll replace the first activeCount elements with sorted ones.
+                for (let i = 0; i < activeCount; i++) {
+                  shards[i] = emblemShards[i];
+                }
+                
+                if (activeCount > 0) {
+                  // Center the largest shard
+                  let centerS = shards[0];
+                  centerS.baseTargetX = 0;
+                  centerS.baseTargetY = 0;
+                  centerS.baseTargetRot = 0;
+                  centerS.targetW = centerS.originalW * scaleMult * dragRatioX;
+                  centerS.targetH = centerS.originalH * scaleMult * dragRatioY;
+                  centerS.emblemLayer = 0;
+
+                  let radiusStep = 45 * scaleMult;
+                  let remaining = activeCount - 1;
+                  let idx = 1;
+                  let layerIndex = 0;
+
+                  while (remaining > 0) {
+                    let groupSize = Math.min(4, remaining);
+                    let R = (layerIndex + 1) * radiusStep;
+                    // Alternate axes: diagonals for even layerIndex, cardinals for odd
+                    let startAngle = (layerIndex % 2 === 0) ? p.PI / 4 : 0;
+                    
+                    // If we have an incomplete layer (less than 4), we distribute them symmetrically
+                    let angleStep = (groupSize < 4) ? (p.TWO_PI / groupSize) : (p.PI / 2);
+                    if (groupSize < 4) {
+                       startAngle = 0; // Reset start angle for incomplete layers for perfect symmetry
+                    }
+
+                    for (let j = 0; j < groupSize; j++) {
+                      let s = shards[idx];
+                      let angle = startAngle + j * angleStep;
+                      
+                      s.baseTargetX = R * p.cos(angle);
+                      s.baseTargetY = R * p.sin(angle);
+                      // Point outward from center
+                      s.baseTargetRot = angle;
+                      s.targetW = s.originalW * scaleMult * dragRatioX;
+                      s.targetH = s.originalH * scaleMult * dragRatioY;
+                      s.emblemLayer = layerIndex + 1;
+                      
+                      idx++;
+                    }
+                    
+                    remaining -= groupSize;
+                    layerIndex++;
                   }
                 }
               } else {
@@ -941,11 +1058,16 @@
                 targetH: s.targetH,
                 originalW: s.originalW,
                 originalH: s.originalH,
+                ringIndex: s.ringIndex,
+                ringBaseR: s.ringBaseR,
+                ringTheta: s.ringTheta,
+                emblemLayer: s.emblemLayer,
               }));
               currentAtelesData.set({
                 shards: exportedShards,
                 bgHex: bgHex,
                 visualParams: visualParams,
+                uploadedImage: currentUploadedImage,
               });
             }
           } else {
@@ -1055,6 +1177,16 @@
               s.targetX = p.cos(theta) * r;
               s.targetY = p.sin(theta) * r;
               s.targetRot = theta + p.PI / 2;
+            } else if (visualParams.shakeMode === "emblem") {
+              // ==========================================
+              // PHYSICS TICK: EMBLEM
+              // Very subtle, organized breathing to keep it
+              // feeling alive without breaking symmetry.
+              // ==========================================
+              let breathScale = 1 + p.sin(time * 0.8 + (s.emblemLayer || 0) * 0.5) * 0.04;
+              s.targetX = s.baseTargetX * breathScale;
+              s.targetY = s.baseTargetY * breathScale;
+              s.targetRot = s.baseTargetRot;
             } else {
               let breathCycle =
                 p.sin(time * visualParams.breathingFreq * 10 + s.id * 0.1) *
@@ -1214,7 +1346,7 @@
 
             let mode = s.fillMode || "solid";
 
-            if (mode === "solid") {
+            if (mode === "solid" || mode === "image") {
               let c = p.color(s.color);
               c.setAlpha(s.opacity || 255);
               p.fill(c);
@@ -1244,6 +1376,12 @@
             }
 
             if (s.type === "rect") p.rect(0, 0, s.w, s.h, s.w * 0.1);
+            else if (s.type === "line") {
+              let gap = s.h * 2.5;
+              p.rect(0, 0, s.w, s.h, s.w * 0.1);
+              p.rect(0, -gap, s.w, s.h, s.w * 0.1);
+              p.rect(0, gap, s.w, s.h, s.w * 0.1);
+            }
             else if (s.type === "ellipse") p.ellipse(0, 0, s.w, s.h);
             else if (s.type === "diamond") {
               p.beginShape();
@@ -1276,11 +1414,13 @@
         // Dim background if in journal mode
         if (!saveTriggered) {
           if (currentState === "journal_input") {
+            p.push();
             let c = p.color(bgHex);
             c.setAlpha(200);
             p.fill(c);
             p.rectMode(p.CORNER);
             p.rect(0, 0, p.width, p.height);
+            p.pop();
           }
         }
         if (currentVisualPhase === "drawing") {
@@ -1315,6 +1455,7 @@
       unsubEntries();
       unsubActiveEntry();
       unsubSave();
+      unsubUploadedImage();
       if (unsubClear) unsubClear();
       if (p5Instance) p5Instance.remove();
     };

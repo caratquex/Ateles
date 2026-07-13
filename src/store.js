@@ -3,6 +3,9 @@ import { writable } from 'svelte/store';
 // 'home', 'journal_input', 'journal_view', 'auth'
 export const appState = writable('auth');
 
+// Tracks if we are viewing the onboarding flow purely as a tutorial
+export const isTutorialMode = writable(false);
+
 // Currently authenticated Supabase user
 /** @type {import('svelte/store').Writable<import('@supabase/supabase-js').User | null>} */
 export const currentUser = writable(null);
@@ -31,7 +34,7 @@ export const strokeOpacity = writable(1.0);
 // 'solid', 'stroke', 'gradient'
 export const fillMode = writable('solid');
 
-// 'chaos', 'orbits', 'perlin', 'matrix', 'geometric_web', 'mandala_wave'
+// 'chaos', 'orbits', 'perlin', 'matrix', 'geometric_web', 'mandala_wave', 'emblem'
 export const shakeMode = writable('chaos');
 
 
@@ -59,6 +62,7 @@ export const journalLayout = writable(2);
 // Current shaking intensity/state
 export const shakeIntensity = writable(0);
 export const hasShaken = writable(false);
+export const uploadedImage = writable(null);
 export const cameraShakeIntensity = writable(0);
 export const isCameraActive = writable(false);
 

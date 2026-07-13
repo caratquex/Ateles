@@ -19,12 +19,26 @@
     journalSaveTrigger,
     journalCancelTrigger,
     saveVisualTrigger,
+    isTutorialMode,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
-  import { LayoutGrid, Pen, Edit, Check, BookOpen, Share2, X, Maximize, Trash2, Download } from "lucide-svelte";
+  import {
+    LayoutGrid,
+    Pen,
+    Edit,
+    Check,
+    BookOpen,
+    Share2,
+    X,
+    Maximize,
+    Trash2,
+    Download,
+    Plus,
+  } from "lucide-svelte";
 
   let menuOpen = false;
+  let showShareOptions = false;
   const themes = [
     "light",
     "dark",
@@ -34,6 +48,8 @@
     "cyberpunk",
     "retro",
     "bauhaus",
+    "nature",
+    "candy",
   ];
   let entriesLoading = false;
 
@@ -48,6 +64,7 @@
       if (error) {
         console.error("Error fetching journal entries:", error.message);
       } else if (data) {
+        console.log("fetchJournalEntries returned", data.length, "rows.");
         const mappedEntries = data.map((item) => ({
           id: item.id,
           title: item.title,
@@ -69,15 +86,22 @@
     }
   }
 
-  onMount(async () => {
+  let lastUserId = null;
+  $: if ($currentUser && $currentUser.id !== lastUserId) {
+    lastUserId = $currentUser.id;
+    fetchJournalEntries();
+  } else if (!$currentUser && lastUserId !== null) {
+    lastUserId = null;
+    journalEntries.set([]);
+  }
 
+  onMount(async () => {
     // Check initial session
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (session) {
       currentUser.set(session.user);
-      await fetchJournalEntries();
       if ($appState === "auth") {
         if (session.user.user_metadata?.username) {
           appState.set("home");
@@ -93,7 +117,6 @@
     supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         currentUser.set(session.user);
-        await fetchJournalEntries();
         if ($appState === "auth") {
           if (session.user.user_metadata?.username) {
             appState.set("home");
@@ -121,6 +144,7 @@
   }
 
   function goHome() {
+    isTutorialMode.set(false);
     activeEntryId.set(null);
     clearCanvasTrigger.update((v) => v + 1);
     appState.set("home");
@@ -128,11 +152,13 @@
   }
 
   function goGallery() {
+    isTutorialMode.set(false);
     appState.set("gallery");
     menuOpen = false;
   }
 
   async function handleLogout() {
+    isTutorialMode.set(false);
     await supabase.auth.signOut();
     menuOpen = false;
   }
@@ -141,63 +167,113 @@
     const p5Canvas = document.querySelector(".p5-container canvas");
     if (!p5Canvas) return null;
 
-    const cssWidth = window.innerWidth;
-    const cssHeight = window.innerHeight;
     const canvasWidth = p5Canvas.width;
     const canvasHeight = p5Canvas.height;
+    const dpr = window.devicePixelRatio || 1;
 
     const outCanvas = document.createElement("canvas");
     outCanvas.width = canvasWidth;
     outCanvas.height = canvasHeight;
     const ctx = outCanvas.getContext("2d");
 
+    // Draw the Ateles visual
     ctx.drawImage(p5Canvas, 0, 0, canvasWidth, canvasHeight);
 
-    const viewContainer = document.querySelector(".view-container");
-    if (!viewContainer) return outCanvas;
-
-    let styles = "";
-    document.querySelectorAll("style").forEach(s => {
-      styles += s.innerHTML + "\n";
+    // Fetch active journal entry
+    let currentEntry = null;
+    const unsub1 = activeEntryId.subscribe((id) => {
+      const unsub2 = journalEntries.subscribe((entries) => {
+        currentEntry = entries.find((e) => e.id === id);
+      });
+      unsub2();
     });
-    styles = styles.replace(/url\([^)]+\)/g, "none");
+    unsub1();
 
-    const serializer = new XMLSerializer();
-    const clone = viewContainer.cloneNode(true);
-    clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-    clone.style.width = cssWidth + "px";
-    clone.style.height = cssHeight + "px";
+    if (!currentEntry) return outCanvas;
 
-    const hint = clone.querySelector(".hint");
-    if (hint) hint.remove();
-    const solidOverlay = clone.querySelector(".solid-overlay");
-    if (solidOverlay) solidOverlay.style.opacity = "0";
+    // Fetch theme colors
+    const style = getComputedStyle(document.documentElement);
+    const bgHex = style.getPropertyValue("--color-bg").trim() || "#FFFFFF";
+    const textPrimary =
+      style.getPropertyValue("--color-text-primary").trim() || "#000000";
+    const textSecondary =
+      style.getPropertyValue("--color-text-secondary").trim() || "#666666";
 
-    const xhtml = serializer.serializeToString(clone);
+    // Draw bottom gradient overlay
+    const gradient = ctx.createLinearGradient(
+      0,
+      canvasHeight * 0.3,
+      0,
+      canvasHeight,
+    );
+    gradient.addColorStop(0, "transparent");
+    gradient.addColorStop(0.35, bgHex);
+    gradient.addColorStop(1, bgHex);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, canvasHeight * 0.3, canvasWidth, canvasHeight * 0.7);
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cssWidth}" height="${cssHeight}">
-      <` + `style><![CDATA[\n${styles}\n]]></` + `style>
-      <foreignObject width="100%" height="100%">${xhtml}</foreignObject>
-    </svg>`;
+    // Draw Text
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
 
-    return new Promise((resolve) => {
-      const img = new Image();
-      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-        URL.revokeObjectURL(url);
-        resolve(outCanvas);
-      };
-      img.onerror = () => {
-        resolve(outCanvas);
-      };
-      img.src = url;
-    });
+    let currentY = canvasHeight * 0.55;
+    let centerX = canvasWidth / 2;
+
+    // Title
+    ctx.font = `300 ${48 * dpr}px 'Outfit', sans-serif`;
+    ctx.fillStyle = textPrimary;
+    ctx.fillText(currentEntry.title || "Untitled", centerX, currentY);
+    currentY += 60 * dpr;
+
+    // Date
+    ctx.font = `500 ${14 * dpr}px 'Outfit', sans-serif`;
+    ctx.fillStyle = textSecondary;
+    ctx.fillText(currentEntry.date || "", centerX, currentY);
+    currentY += 40 * dpr;
+
+    // Content (wrapped)
+    ctx.font = `400 ${18 * dpr}px 'Outfit', sans-serif`;
+    ctx.fillStyle = textPrimary;
+    const maxWidth = Math.min(800 * dpr, canvasWidth * 0.85);
+    const lineHeight = 30 * dpr;
+
+    const text = currentEntry.content || "";
+    const paragraphs = text.split("\n");
+
+    for (let i = 0; i < paragraphs.length; i++) {
+      let words = paragraphs[i].split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + " ";
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          ctx.fillText(line, centerX, currentY);
+          line = words[n] + " ";
+          currentY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, centerX, currentY);
+      currentY += lineHeight;
+    }
+
+    return outCanvas;
   }
 
-  async function handleShare() {
-    const canvas = await captureCombinedCanvas();
+  async function handleShare(includeJournalPage = true) {
+    let canvas;
+    if (includeJournalPage) {
+      canvas = await captureCombinedCanvas();
+    } else {
+      const p5Canvas = document.querySelector(".p5-container canvas");
+      if (!p5Canvas) return;
+      canvas = document.createElement("canvas");
+      canvas.width = p5Canvas.width;
+      canvas.height = p5Canvas.height;
+      canvas.getContext("2d").drawImage(p5Canvas, 0, 0);
+    }
     if (!canvas) {
       return;
     }
@@ -209,11 +285,11 @@
       if (!blob) throw new Error("Could not create image blob");
 
       const file = new File([blob], "Ateles_Visual.png", { type: "image/png" });
-      
+
       let activeTitle = "My Ateles";
-      const unsubActive = activeEntryId.subscribe(id => {
-        const unsubEntries = journalEntries.subscribe(entries => {
-          const entry = entries.find(e => e.id === id);
+      const unsubActive = activeEntryId.subscribe((id) => {
+        const unsubEntries = journalEntries.subscribe((entries) => {
+          const entry = entries.find((e) => e.id === id);
           if (entry && entry.title) activeTitle = entry.title;
         });
         unsubEntries();
@@ -259,7 +335,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<main 
+<main
   class="w-screen h-[100dvh] overflow-hidden relative"
   on:click={() => {
     if ($isFullscreenVisual) {
@@ -268,8 +344,6 @@
   }}
 >
   <P5Canvas />
-
-
 
   {#if !$isFullscreenVisual}
     {#if $appState === "auth"}
@@ -315,16 +389,33 @@
         >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
-          >
-          <button
-            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
             on:click={goHome}>Home</button
           >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
             on:click={goGallery}>Gallery</button
           >
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={() => {
+              isTutorialMode.set(true);
+              appState.set("onboarding");
+              menuOpen = false;
+            }}>Tutorial</button
+          >
+          <button
+            class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+            on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
+          >
+          {#if $appState === "home"}
+            <button
+              class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+              on:click={() => {
+                saveVisualTrigger.update((n) => n + 1);
+                menuOpen = false;
+              }}>Download Drawing</button
+            >
+          {/if}
           {#if $currentUser}
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
@@ -351,7 +442,8 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "journal_input"}
-        on:click|stopPropagation={() => journalCancelTrigger.update(n => n + 1)}
+        on:click|stopPropagation={() =>
+          journalCancelTrigger.update((n) => n + 1)}
         aria-label="Cancel"
       >
         <X size={18} />
@@ -360,7 +452,7 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "home" && $visualPhase === "bloom"}
-        on:click|stopPropagation={() => saveVisualTrigger.update(n => n + 1)}
+        on:click|stopPropagation={() => saveVisualTrigger.update((n) => n + 1)}
         aria-label="Save Visual"
       >
         <Download size={18} />
@@ -376,13 +468,19 @@
       </button>
 
       <!-- Center Navbar -->
-      <div class="bottom-nav" class:compact={$appState === "journal_view" || $appState === "journal_input"}>
+      <div
+        class="bottom-nav"
+        class:compact={$appState === "journal_view" ||
+          $appState === "journal_input"}
+      >
         <button
           class="nav-btn"
-          class:active={$appState === "gallery" || $appState === "journal_view" || $appState === "journal_input"}
+          class:active={$appState === "gallery" ||
+            $appState === "journal_view" ||
+            $appState === "journal_input"}
           on:click|stopPropagation={() => {
             if ($appState === "journal_input") {
-              journalCancelTrigger.update(n => n + 1);
+              journalCancelTrigger.update((n) => n + 1);
             } else {
               activeEntryId.set(null);
               appState.set("gallery");
@@ -418,14 +516,22 @@
             class:active={$appState === "home"}
             on:click|stopPropagation={() => {
               if ($appState === "journal_input") {
-                journalCancelTrigger.update(n => n + 1);
+                journalCancelTrigger.update((n) => n + 1);
               } else {
+                if ($appState === "journal_view" || $appState === "gallery") {
+                  handleStartOver();
+                }
                 appState.set("home");
               }
             }}
           >
-            <Pen size={18} />
-            <span>Ateles</span>
+            {#if $appState === "gallery" || $appState === "journal_view"}
+              <Plus size={18} />
+              <span>New Ateles</span>
+            {:else}
+              <Pen size={18} />
+              <span>Ateles</span>
+            {/if}
           </button>
         {/if}
       </div>
@@ -434,15 +540,33 @@
       <button
         class="nav-icon-btn"
         class:show={$appState === "journal_view"}
-        on:click|stopPropagation={handleShare}
-        aria-label="Share Journal"
+        on:click|stopPropagation={() => (showShareOptions = !showShareOptions)}
+        aria-label="Share Options"
       >
         <Share2 size={18} />
       </button>
 
+      {#if showShareOptions}
+        <div class="share-dropdown">
+          <button
+            on:click|stopPropagation={() => {
+              handleShare(false);
+              showShareOptions = false;
+            }}>Save Ateles visual only</button
+          >
+          <button
+            on:click|stopPropagation={() => {
+              handleShare(true);
+              showShareOptions = false;
+            }}>Save the whole journal page</button
+          >
+        </div>
+      {/if}
+
       <button
         class="nav-icon-btn"
-        class:show={$appState === "journal_view" || ($appState === "home" && $visualPhase === "bloom")}
+        class:show={$appState === "journal_view" ||
+          ($appState === "home" && $visualPhase === "bloom")}
         on:click|stopPropagation={() => isFullscreenVisual.set(true)}
         aria-label="View Fullscreen"
       >
@@ -452,7 +576,7 @@
       <button
         class="nav-icon-btn active-accent"
         class:show={$appState === "journal_input"}
-        on:click|stopPropagation={() => journalSaveTrigger.update(n => n + 1)}
+        on:click|stopPropagation={() => journalSaveTrigger.update((n) => n + 1)}
         aria-label="Done"
       >
         <Check size={18} />
@@ -494,7 +618,11 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 4px;
-    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.4s ease;
+    transition:
+      width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.4s ease;
   }
 
   .bottom-nav.compact {
@@ -504,7 +632,9 @@
   .bottom-nav .nav-btn span {
     max-width: 100px;
     opacity: 1;
-    transition: max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+    transition:
+      max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.25s ease;
     overflow: hidden;
     white-space: nowrap;
     display: inline-block;
@@ -534,7 +664,9 @@
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+      gap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .nav-btn:hover:not(.active) {
@@ -566,7 +698,7 @@
     box-shadow: none;
     margin: 0;
     padding: 0;
-    transition: 
+    transition:
       width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
       transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
       opacity 0.3s ease,
@@ -584,6 +716,41 @@
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
     border-radius: var(--radius-circle);
+  }
+
+  .share-dropdown {
+    position: absolute;
+    bottom: 70px;
+    right: 50px;
+    background: var(--color-glass);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: var(--shadow-lg);
+    z-index: 101;
+  }
+
+  .share-dropdown button {
+    background: transparent;
+    border: none;
+    padding: 10px 14px;
+    color: var(--color-text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+  }
+
+  .share-dropdown button:hover {
+    background: var(--color-surface);
   }
 
   .nav-icon-btn:hover {
