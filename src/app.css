@@ -165,17 +165,17 @@
 
 /* ── Retro Theme ──────────────────────────────────── */
 :root[data-theme="retro"] {
-  --color-bg: #F;
-  --color-surface: #C75B3A;
-  --color-accent: #4A6741;
-  --color-text-primary: #4A6741;
-  --color-text-secondary: #C75B3A;
-  --color-text-tertiary: #E8A838;
-  --color-text-inverse: #FFFFFF;
-  --color-border: rgba(74, 103, 65, 0.15);
-  --color-border-strong: rgba(74, 103, 65, 0.30);
-  --color-overlay: rgba(232, 168, 56, 0.78);
-  --color-glass: rgba(199, 91, 58, 0.60);
+  --color-bg: #F3E9DC;
+  --color-surface: #E09F3E;
+  --color-accent: #335C67;
+  --color-text-primary: #335C67;
+  --color-text-secondary: #9E2A2B;
+  --color-text-tertiary: #E09F3E;
+  --color-text-inverse: #F3E9DC;
+  --color-border: rgba(51, 92, 103, 0.15);
+  --color-border-strong: rgba(51, 92, 103, 0.30);
+  --color-overlay: rgba(243, 233, 220, 0.78);
+  --color-glass: rgba(224, 159, 62, 0.60);
 }
 
 /* ── Bauhaus Theme ────────────────────────────────── */
@@ -193,7 +193,35 @@
   --color-glass: rgba(26, 58, 143, 0.65);
 }
 
+/* ── Nature Theme ─────────────────────────────────── */
+:root[data-theme="nature"] {
+  --color-bg: #F7F4D5;
+  --color-surface: #E0E5C1;
+  --color-accent: #0A3323;
+  --color-text-primary: #0A3323;
+  --color-text-secondary: #4A5730;
+  --color-text-tertiary: #6D7D50;
+  --color-text-inverse: #F7F4D5;
+  --color-border: rgba(10, 51, 35, 0.15);
+  --color-border-strong: #0A3323;
+  --color-overlay: rgba(247, 244, 213, 0.78);
+  --color-glass: rgba(224, 229, 193, 0.60);
+}
 
+/* ── Candy Theme ────────────────────────────────── */
+:root[data-theme="candy"] {
+  --color-bg: #FDE9F2;
+  --color-surface: #FFC2D1;
+  --color-accent: #4ECDC4;
+  --color-text-primary: #4ECDC4;
+  --color-text-secondary: #F76C6C;
+  --color-text-tertiary: #FFB1B1;
+  --color-text-inverse: #FFFFFF;
+  --color-border: rgba(78, 205, 196, 0.25);
+  --color-border-strong: #FF6C6C;
+  --color-overlay: rgba(247, 241, 197, 0.78);
+  --color-glass: rgba(248, 199, 223, 0.60);
+}
 
 /* ── Reset ──────────────────────────────────────────── */
 
