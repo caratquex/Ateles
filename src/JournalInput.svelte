@@ -32,6 +32,32 @@
       }
     }
 
+    // Check for offline backup
+    try {
+      const backupStr = localStorage.getItem('ateles_unsaved_backup');
+      if (backupStr) {
+        const backup = JSON.parse(backupStr);
+        if (
+          (entryId && String(backup.id) === String(entryId)) ||
+          (!entryId && (!backup.id || String(backup.id).startsWith('temp-')))
+        ) {
+          const restore = confirm("We found an unsaved backup of this journal entry. Would you like to restore it?");
+          if (restore) {
+            title = backup.title || '';
+            content = backup.content || '';
+            if (backup.visual_data) {
+              currentAtelesData.set(backup.visual_data);
+            }
+            autosaveStatus = 'Unsaved changes';
+          } else {
+            localStorage.removeItem('ateles_unsaved_backup');
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error reading offline backup:", e);
+    }
+
     // Subscribe to global bottom-row triggers
     unsubSave = journalSaveTrigger.subscribe(val => {
       if (val > 0) {
@@ -58,6 +84,20 @@
   function triggerAutosave() {
     if (!title && !content) return;
     autosaveStatus = 'Unsaved changes';
+
+    // Offline backup
+    try {
+      localStorage.setItem('ateles_unsaved_backup', JSON.stringify({
+        id: entryId,
+        title,
+        content,
+        visual_data: $currentAtelesData,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.error("Error writing offline backup:", e);
+    }
+
     clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(async () => {
       await performAutosave();
@@ -219,6 +259,9 @@
     }
     })();
     await currentSavePromise;
+    if (autosaveStatus === 'Saved') {
+      localStorage.removeItem('ateles_unsaved_backup');
+    }
     currentSavePromise = null;
   }
 
