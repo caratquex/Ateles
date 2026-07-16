@@ -507,6 +507,9 @@
           shards.length > 10
         ) {
           visualPhase.set("breaking");
+          if (typeof navigator !== "undefined" && navigator.vibrate) {
+            navigator.vibrate(100);
+          }
           maxShakeDuringBreak = currentShake;
           maxShakeX = Math.abs(p.accelerationX) || 0;
           maxShakeY = Math.abs(p.accelerationY) || 0;
@@ -526,6 +529,9 @@
           if (currentShake > 25) {
             // Reshake
             visualPhase.set("breaking");
+            if (typeof navigator !== "undefined" && navigator.vibrate) {
+              navigator.vibrate([80, 50, 80]);
+            }
             maxShakeDuringBreak = currentShake;
             maxShakeX = Math.abs(p.accelerationX) || 0;
             maxShakeY = Math.abs(p.accelerationY) || 0;
