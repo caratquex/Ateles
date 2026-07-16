@@ -187,7 +187,7 @@
       <div class="drawing-controls-wrapper">
         {#if showBrushSettings}
           <div
-            class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards] mb-3"
+            class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards] mb-3 max-h-[65vh] overflow-y-auto"
           >
             <!-- Header -->
             <div

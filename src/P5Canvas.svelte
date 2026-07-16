@@ -24,6 +24,7 @@
     uploadedImage,
   } from "./store.js";
   import DrawingTracker from "./DrawingTracker.js";
+  import { audioEngine } from "./lib/audio.js";
 
   let canvasContainer;
   let p5Instance;
@@ -290,6 +291,8 @@
         totalDrawDistY += dy;
         totalDrawDistance += d;
 
+        audioEngine.playDrawingSound(d, currentStrokeType);
+
         // Interpolate for smooth, gap-free strokes
         let startPt = p.createVector(lastDrawPoint.x, lastDrawPoint.y);
         let steps = Math.max(1, Math.floor(d / INTERP_STEP));
@@ -343,6 +346,7 @@
 
       // ── Mouse handlers (desktop) ──────────────────────
       p.mousePressed = (event) => {
+        audioEngine.init();
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null;
@@ -350,6 +354,7 @@
           redoStack = [];
           if (currentStrokeType.startsWith("stamp_")) {
             createShard(p.mouseX - p.width / 2, p.mouseY - p.height / 2, null);
+            audioEngine.playDrawingSound(20, currentStrokeType);
           } else {
             tracker.startStroke(
               p.mouseX,
@@ -386,6 +391,7 @@
 
       // ── Touch handlers (mobile) ───────────────────────
       p.touchStarted = (event) => {
+        audioEngine.init();
         if (event && event.target && event.target.tagName !== "CANVAS") return;
         if (currentVisualPhase === "drawing" && currentState === "home") {
           lastDrawPoint = null; // reset for new stroke
@@ -398,6 +404,7 @@
                 p.touches[0].y - p.height / 2,
                 null,
               );
+              audioEngine.playDrawingSound(20, currentStrokeType);
             } else {
               tracker.startStroke(
                 p.touches[0].x,
@@ -507,6 +514,7 @@
           shards.length > 10
         ) {
           visualPhase.set("breaking");
+          audioEngine.playShakeSound(shakeCount === 0 ? 1 : shakeCount + 1);
           if (typeof navigator !== "undefined" && navigator.vibrate) {
             navigator.vibrate(100);
           }
@@ -529,6 +537,7 @@
           if (currentShake > 25) {
             // Reshake
             visualPhase.set("breaking");
+            audioEngine.playShakeSound(shakeCount + 1);
             if (typeof navigator !== "undefined" && navigator.vibrate) {
               navigator.vibrate([80, 50, 80]);
             }
@@ -602,6 +611,7 @@
             if (calmFrames > 30) {
               // Half a second of calm
               visualPhase.set("bloom");
+              audioEngine.playBloomSound();
 
               // Filter out dead shards permanently
               shards = shards.filter((s) => !s.isDead);
