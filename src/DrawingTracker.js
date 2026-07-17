@@ -11,11 +11,12 @@ export default class DrawingTracker {
     this.maxY = 0;
   }
 
-  startStroke(x, y, time, brushSize) {
+  startStroke(x, y, time, brushSize, strokeColor = "#000000") {
     this.isActive = true;
     this.points = [{ x, y }];
     this.startTime = time;
     this.brushSize = brushSize;
+    this.strokeColor = strokeColor;
     
     this.minX = x;
     this.maxX = x;
@@ -113,7 +114,7 @@ export default class DrawingTracker {
     let cx = Math.round(currentPt.x - p.width / 2);
     let cy = Math.round(currentPt.y - p.height / 2);
 
-    let hudTextBottom = `C: ${count} | S: ${size} | T: ${Math.floor(timeSpent)}ms`;
+    let hudTextBottom = `C: ${count} | S: ${size} | T: ${Math.floor(timeSpent)}ms | Col: ${this.strokeColor}`;
     let hudTextTop = `X: ${cx} | Y: ${cy}`;
 
     p.text(hudTextTop, bx, by - 5);
