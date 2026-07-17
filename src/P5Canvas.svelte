@@ -361,6 +361,7 @@
               p.mouseY,
               p.millis(),
               currentStrokeSize,
+              currentStrokeColor
             );
             addDrawPoints(p.mouseX, p.mouseY);
           }
@@ -411,6 +412,7 @@
                 p.touches[0].y,
                 p.millis(),
                 currentStrokeSize,
+                currentStrokeColor
               );
               addDrawPoints(p.touches[0].x, p.touches[0].y);
             }
@@ -516,7 +518,8 @@
           visualPhase.set("breaking");
           audioEngine.playShakeSound(shakeCount === 0 ? 1 : shakeCount + 1);
           if (typeof navigator !== "undefined" && navigator.vibrate) {
-            navigator.vibrate(100);
+            // Intense shatter vibration
+            navigator.vibrate([150, 50, 150, 50, 250]);
           }
           maxShakeDuringBreak = currentShake;
           maxShakeX = Math.abs(p.accelerationX) || 0;
@@ -539,7 +542,8 @@
             visualPhase.set("breaking");
             audioEngine.playShakeSound(shakeCount + 1);
             if (typeof navigator !== "undefined" && navigator.vibrate) {
-              navigator.vibrate([80, 50, 80]);
+              // Deep rumble vibration for reshakes
+              navigator.vibrate([200, 50, 200, 50, 300]);
             }
             maxShakeDuringBreak = currentShake;
             maxShakeX = Math.abs(p.accelerationX) || 0;

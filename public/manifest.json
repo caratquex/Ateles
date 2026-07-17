@@ -1,0 +1,17 @@
+{
+  "name": "Ateles",
+  "short_name": "Ateles",
+  "description": "Draw your ego, transform it into an interactive creature, and record your journey.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#F7F4D5",
+  "theme_color": "#0A3323",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
