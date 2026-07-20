@@ -1,17 +1,17 @@
-# Ateles 🌿🎨 (/ætəl,ēz/)
+# Ateles (/ætəl,ēz/)
 > **Try it here: [ateles.vercel.app](https://ateles.vercel.app/)**
 
 Ateles is a web application that provides a **micro-exposure therapy** approach for the **Atelophobia** (fear of imperfection or not being good enough) community.
 
 ---
 
-## 🎯 Project Goals
+## Project Goals
 1. **Reappreciate "Flaw":** Encourage users to reframe and appreciate "flaws" or "mistakes" as a unique type of beauty and art.
 2. **A Ritual Journey:** Provide a supportive interface that records and archives every step of the user's emotional and creative ritual journey.
 
 ---
 
-## 🔄 The User Journey (MVP)
+## The User Journey (MVP)
 The experience is designed as a four-stage loop to challenge perfectionism:
 
 ```
@@ -26,7 +26,7 @@ The experience is designed as a four-stage loop to challenge perfectionism:
 
 ---
 
-## 🎨 Key Features
+## Key Features
 
 1. **The Canvas Dashboard (Creation):** A minimalist interface featuring multiple custom brush types (Round, Square, Line, and Stamps), variable size/opacity sliders, and a color palette manager.
 2. **Interactive Physics (Shatter & Reform):** Users shake their device to "break" their drawing into dynamic physics shards. Shards reform into an interactive organism that orbits and reacts to touch.
@@ -48,17 +48,16 @@ The experience is designed as a four-stage loop to challenge perfectionism:
 
 ---
 
-## 🛠️ Technical Stack
+## Technical Stack
 
 - **Framework:** Svelte (Vite)
 - **Visuals & Physics:** p5.js
 - **Audio:** Tone.js (via Web Audio API)
-- **Computer Vision:** MediaPipe Hands (Hand tracking and gesture integration)
 - **Platform:** Progressive Web App (PWA) with native mobile hardware triggers (Haptic/Vibration & DeviceMotionEvent)
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 Make sure you have [Node.js](https://nodejs.org/) installed.
@@ -67,7 +66,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 1. Clone the repository:
    ```bash
    git clone <repo-url>
-   cd "Ateles - ver 2"
+   cd "Ateles"
    ```
 2. Install local dependencies:
    ```bash
@@ -80,7 +79,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 
 ---
 
-## 📱 Mobile Setup & Fullscreen Testing
+## Mobile Setup & Fullscreen Testing
 To run Ateles on a mobile device over your local network in true standalone/fullscreen mode:
 
 1. Connect both your PC and phone to the same Wi-Fi network.
@@ -95,7 +94,7 @@ To run Ateles on a mobile device over your local network in true standalone/full
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 - `src/lib/audio.js` — Procedural Web Audio engine (Tone.js wrapper).
 - `src/P5Canvas.svelte` — Main canvas drawing system, shard physics loops, and gesture integration.
 - `src/DrawingTracker.js` — Bounding box, grid metrics, and HUD rendering logic for the drawing tracker.
