@@ -1,7 +1,28 @@
-# Ateles 🌿🎨
-> *An interactive art therapy and generative physics playground.*
+# Ateles 🌿🎨 (/ætəl,ēz/)
+> **Try it here: [ateles.vercel.app](https://ateles.vercel.app/)**
 
-Ateles is a mobile-first web application designed as an ambient, interactive art-therapy space. Users begin by drawing freeform shapes ("their ego") and transform their artwork into an interactive, physics-governed creature that reacts to touch, movement, and device acceleration.
+Ateles is a web application that provides a **micro-exposure therapy** approach for the **Atelophobia** (fear of imperfection or not being good enough) community.
+
+---
+
+## 🎯 Project Goals
+1. **Reappreciate "Flaw":** Encourage users to reframe and appreciate "flaws" or "mistakes" as a unique type of beauty and art.
+2. **A Ritual Journey:** Provide a supportive interface that records and archives every step of the user's emotional and creative ritual journey.
+
+---
+
+## 🔄 The User Journey (MVP)
+The experience is designed as a four-stage loop to challenge perfectionism:
+
+```
+[1. Draw Something] ───> [2. The Release] ───> [3. Create Ateles] ───> [4. Save Ateles]
+ (Effort & Expression)   (Create Flaw Intentionally) (Reframing Flaws as Beauty)  (Ritual Memory)
+```
+
+* **1. Draw Something (Effort & Self-Expression):** Users put effort into creating a drawing. To combat perfectionism, **there is no undo and no eraser**—every mark is permanent.
+* **2. The Release (Creating Flaws Intentionally):** The user physically shakes the device to shatter their creation. This acts as a micro-exposure exercise, intentionally breaking the "perfect" drawing.
+* **3. Create Ateles (Acceptance & Reframing):** The shattered shards pull back together using organic physics to form an interactive creature ("an Ateles"). This reframes the accidental shards as a beautiful, living, and unique form. **To avoid the "perfect" trap**, the user has a limited number of reshakes (currently 5), after which the visuals gradually disappear.
+* **4. Save Ateles (Ritual Memory):** The user reflects, names their creature, writes a journal entry, and saves it to their personal history timeline.
 
 ---
 
