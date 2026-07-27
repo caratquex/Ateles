@@ -15,6 +15,8 @@
     journalEntries,
     clearCanvasTrigger,
     saveVisualTrigger,
+    saveGifTrigger,
+    isGifRecording,
     fillMode,
     strokeSize,
     strokeOpacity,
@@ -84,6 +86,11 @@
     let saveTriggered = false;
     const unsubSave = saveVisualTrigger.subscribe((v) => {
       if (v > 0) saveTriggered = true;
+    });
+
+    let saveGifTriggered = false;
+    const unsubSaveGif = saveGifTrigger.subscribe((v) => {
+      if (v > 0) saveGifTriggered = true;
     });
 
     const sketch = (p) => {
@@ -1451,6 +1458,19 @@
           p.saveCanvas("Ateles_Visual", "png");
           saveTriggered = false;
         }
+
+        if (saveGifTriggered) {
+          saveGifTriggered = false;
+          isGifRecording.set(true);
+          try {
+            p.saveGif("Ateles_Animation", 3, { units: "seconds", delay: 0 });
+          } catch (err) {
+            console.error("Error saving GIF:", err);
+          }
+          setTimeout(() => {
+            isGifRecording.set(false);
+          }, 4000);
+        }
       };
 
       p.windowResized = () => {
@@ -1473,6 +1493,8 @@
       unsubLayout();
       unsubTheme();
       unsubEntries();
+      unsubSave();
+      unsubSaveGif();
       unsubActiveEntry();
       unsubSave();
       unsubUploadedImage();

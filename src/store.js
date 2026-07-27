@@ -56,6 +56,10 @@ export const clearCanvasTrigger = writable(0);
 // Trigger to save the visual as PNG
 export const saveVisualTrigger = writable(0);
 
+// Trigger to save the visual animation as GIF
+export const saveGifTrigger = writable(0);
+export const isGifRecording = writable(false);
+
 // Journal view layout variant (0, 1, 2)
 export const journalLayout = writable(2);
 

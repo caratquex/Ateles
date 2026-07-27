@@ -43,8 +43,9 @@ The experience is designed as a four-stage loop to challenge perfectionism:
    - Timbre/modulation shifts depending on active brush types.
    - Dissonance and chord density progressively ramp up as the user shakes the device (up to 5 levels of tension).
    - Resolves into a warm, ambient `CMaj9` chord when the creature blooms.
-5. **Installable PWA (Progressive Web App):** Built-in custom Service Worker (`public/sw.js`) that caches static assets and heavy external machine learning libraries (MediaPipe, Tone.js) so the application works completely offline.
-6. **Dynamic Theming:** Dynamic 60-30-10 color theme engine providing curated aesthetic templates (Japandi, Bauhaus, Candy, Cyberpunk, Nature, and Retro).
+5. **GIF Animation & PNG Export:** Ability to capture the animated Ateles creature in motion as an animated `.gif` file (3-second looping recording with real-time feedback) or save a high-resolution PNG snapshot.
+6. **Installable PWA (Progressive Web App):** Built-in custom Service Worker (`public/sw.js`) that caches static assets and heavy external machine learning libraries (MediaPipe, Tone.js) so the application works completely offline.
+7. **Dynamic Theming:** Dynamic 60-30-10 color theme engine providing curated aesthetic templates (Japandi, Bauhaus, Candy, Cyberpunk, Nature, and Retro).
 
 ---
 
