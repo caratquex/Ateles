@@ -21,6 +21,8 @@
     saveVisualTrigger,
     saveGifTrigger,
     isGifRecording,
+    saveMp4Trigger,
+    isMp4Recording,
     isTutorialMode,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
@@ -37,6 +39,7 @@
     Trash2,
     Download,
     Film,
+    Video,
     Plus,
   } from "lucide-svelte";
 
@@ -353,6 +356,14 @@
       Recording GIF Animation (3s)...
     </div>
   {/if}
+  {#if $isMp4Recording}
+    <div
+      class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-surface/90 backdrop-blur-md border border-border px-4 py-2 rounded-pill shadow-lg flex items-center gap-2 animate-pulse text-[0.875rem] font-medium text-text-primary pointer-events-none"
+    >
+      <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+      Recording MP4 Video (3s)...
+    </div>
+  {/if}
 
   <P5Canvas />
 
@@ -433,6 +444,13 @@
                 menuOpen = false;
               }}>Download Animation (GIF)</button
             >
+            <button
+              class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+              on:click={() => {
+                saveMp4Trigger.update((n) => n + 1);
+                menuOpen = false;
+              }}>Download Video (MP4)</button
+            >
           {/if}
           {#if $currentUser}
             <button
@@ -485,6 +503,16 @@
         title="Download Animation (GIF)"
       >
         <Film size={18} />
+      </button>
+
+      <button
+        class="nav-icon-btn"
+        class:show={$appState === "home" && $visualPhase === "bloom"}
+        on:click|stopPropagation={() => saveMp4Trigger.update((n) => n + 1)}
+        aria-label="Save Video (MP4)"
+        title="Download Video (MP4)"
+      >
+        <Video size={18} />
       </button>
 
       <button

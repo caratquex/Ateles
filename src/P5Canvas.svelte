@@ -17,6 +17,8 @@
     saveVisualTrigger,
     saveGifTrigger,
     isGifRecording,
+    saveMp4Trigger,
+    isMp4Recording,
     fillMode,
     strokeSize,
     strokeOpacity,
@@ -91,6 +93,11 @@
     let saveGifTriggered = false;
     const unsubSaveGif = saveGifTrigger.subscribe((v) => {
       if (v > 0) saveGifTriggered = true;
+    });
+
+    let saveMp4Triggered = false;
+    const unsubSaveMp4 = saveMp4Trigger.subscribe((v) => {
+      if (v > 0) saveMp4Triggered = true;
     });
 
     const sketch = (p) => {
@@ -1471,6 +1478,68 @@
             isGifRecording.set(false);
           }, 4000);
         }
+
+        if (saveMp4Triggered) {
+          saveMp4Triggered = false;
+          isMp4Recording.set(true);
+
+          try {
+            const canvas = canvasContainer ? canvasContainer.querySelector("canvas") : null;
+            if (canvas && typeof canvas.captureStream === "function") {
+              const stream = canvas.captureStream(30);
+              
+              let mimeType = "video/mp4";
+              if (typeof MediaRecorder !== "undefined") {
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                  if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
+                    mimeType = "video/mp4;codecs=avc1";
+                  } else if (MediaRecorder.isTypeSupported("video/webm;codecs=h264")) {
+                    mimeType = "video/webm;codecs=h264";
+                  } else if (MediaRecorder.isTypeSupported("video/webm")) {
+                    mimeType = "video/webm";
+                  }
+                }
+              }
+
+              const recorder = new MediaRecorder(stream, {
+                mimeType,
+                videoBitsPerSecond: 5000000,
+              });
+
+              const chunks = [];
+              recorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                  chunks.push(e.data);
+                }
+              };
+
+              recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+                a.download = `Ateles_Animation.${ext}`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                isMp4Recording.set(false);
+              };
+
+              recorder.start();
+
+              setTimeout(() => {
+                if (recorder.state !== "inactive") {
+                  recorder.stop();
+                }
+              }, 3500);
+            } else {
+              isMp4Recording.set(false);
+            }
+          } catch (err) {
+            console.error("Error recording video:", err);
+            isMp4Recording.set(false);
+          }
+        }
       };
 
       p.windowResized = () => {
@@ -1495,6 +1564,7 @@
       unsubEntries();
       unsubSave();
       unsubSaveGif();
+      unsubSaveMp4();
       unsubActiveEntry();
       unsubSave();
       unsubUploadedImage();

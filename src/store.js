@@ -60,6 +60,10 @@ export const saveVisualTrigger = writable(0);
 export const saveGifTrigger = writable(0);
 export const isGifRecording = writable(false);
 
+// Trigger to save the visual animation as MP4
+export const saveMp4Trigger = writable(0);
+export const isMp4Recording = writable(false);
+
 // Journal view layout variant (0, 1, 2)
 export const journalLayout = writable(2);
 
