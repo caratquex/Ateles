@@ -125,8 +125,9 @@
         }
       } else {
         currentUser.set(null);
-        journalEntries.set([]);
-        appState.set("auth");
+        if ($appState === "auth") {
+          appState.set("auth");
+        }
       }
     });
   });
@@ -419,6 +420,14 @@
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
               on:click={handleLogout}>Log Out</button
+            >
+          {:else}
+            <button
+              class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
+              on:click={() => {
+                appState.set("auth");
+                menuOpen = false;
+              }}>Log In / Sign Up</button
             >
           {/if}
         </div>
