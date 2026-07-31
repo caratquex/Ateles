@@ -66,21 +66,13 @@
       class="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
       on:click={() => (step = "auth")}
     >
-      <div class="w-48 h-48 mb-16 animate-[spin_20s_linear_infinite] flex items-center justify-center">
+      <div class="w-48 h-48 mb-20 animate-[spin_20s_linear_infinite] flex items-center justify-center">
         <AtelesLogo className="w-full h-full drop-shadow-sm text-black" />
       </div>
       <h1 class="text-text-primary text-4xl font-medium mb-4 tracking-wide">
         Welcome
       </h1>
-      <p class="text-text-secondary text-sm tracking-wider mb-8">Click to start</p>
-      
-      <button
-        type="button"
-        class="px-6 py-2.5 rounded-full bg-surface/80 hover:bg-surface border border-border text-text-primary text-sm font-medium transition-all cursor-pointer shadow-sm z-10"
-        on:click|stopPropagation={() => appState.set("onboarding")}
-      >
-        Play as Guest
-      </button>
+      <p class="text-text-secondary text-sm tracking-wider">Click to start</p>
     </div>
   {:else}
     <div
