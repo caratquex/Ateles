@@ -1,6 +1,4 @@
 // Tone is loaded globally via CDN in index.html
-const Tone = window.Tone;
-
 class AudioEngine {
   constructor() {
     this.isInitialized = false;
@@ -11,8 +9,14 @@ class AudioEngine {
 
   async init() {
     if (this.isInitialized) return;
+    const Tone = typeof window !== "undefined" ? window.Tone : null;
+    if (!Tone) {
+      console.warn("Tone.js is not loaded yet");
+      return;
+    }
 
-    await Tone.start();
+    try {
+      await Tone.start();
 
     // Global Effects
     this.reverb = new Tone.Reverb({
@@ -51,7 +55,10 @@ class AudioEngine {
       volume: -22
     }).connect(this.drawingFilter);
 
-    this.isInitialized = true;
+      this.isInitialized = true;
+    } catch (err) {
+      console.error("Audio Engine init error:", err);
+    }
   }
 
   playDrawingSound(velocity = 0, strokeType = "rect") {

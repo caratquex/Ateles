@@ -442,9 +442,9 @@
                 >
                   <span>{isUploadingTexture ? 'Uploading...' : 'Texture'}</span>
                   {#if $uploadedImage && !isUploadingTexture}
-                    <button class="ml-1 px-1.5 py-0.5 rounded-full bg-text-secondary text-bg hover:bg-accent hover:text-white" on:click|stopPropagation={() => { uploadedImage.set(null); fileInput.value = ''; fillMode.set("solid"); }}>
+                    <span role="button" tabindex="0" class="ml-1 px-1.5 py-0.5 rounded-full bg-text-secondary text-bg hover:bg-accent hover:text-white inline-block" on:click|stopPropagation={() => { uploadedImage.set(null); fileInput.value = ''; fillMode.set("solid"); }} on:keydown={(e) => e.key === 'Enter' && uploadedImage.set(null)}>
                       &times;
-                    </button>
+                    </span>
                   {/if}
                 </button>
                 <input type="file" accept="image/png, image/jpeg" style="display:none;" bind:this={fileInput} on:change={handleImageUpload} />

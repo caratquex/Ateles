@@ -44,6 +44,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Cache API only supports GET and HEAD requests
+  if (event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+    return;
+  }
+
   const url = event.request.url;
 
   // Cache-first strategy for CDNs and static assets

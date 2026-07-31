@@ -12,6 +12,11 @@
   onMount(() => {
     isCameraActive.set(true);
 
+    if (typeof window === "undefined" || !window.Hands || !window.Camera) {
+      console.warn("MediaPipe Hands or Camera not loaded");
+      return;
+    }
+
     // Using the globals injected by index.html CDN scripts
     hands = new window.Hands({locateFile: (file) => {
       return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
