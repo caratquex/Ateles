@@ -53,7 +53,6 @@ The experience is designed as a four-stage loop to challenge perfectionism:
 - **Framework:** Svelte (Vite)
 - **Visuals & Physics:** p5.js
 - **Audio:** Tone.js (via Web Audio API)
-- **Computer Vision:** MediaPipe Hands (Hand tracking and gesture integration)
 - **Platform:** Progressive Web App (PWA) with native mobile hardware triggers (Haptic/Vibration & DeviceMotionEvent)
 
 ---
