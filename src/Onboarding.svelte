@@ -32,6 +32,13 @@
     }
   }
 
+  function handlePlayAsGuest() {
+    if (!username.trim()) {
+      username = "Guest";
+    }
+    step = 2;
+  }
+
   async function handleSubmit() {
     if (step === 5) {
       if ($isTutorialMode) {
@@ -46,24 +53,31 @@
       // Transition immediately to prevent perceived lag
       appState.set("home");
 
-      try {
-        const { data, error } = await supabase.auth.updateUser({
-          data: {
-            username: username.trim(),
-          },
-        });
+      if ($currentUser) {
+        try {
+          const { data, error } = await supabase.auth.updateUser({
+            data: {
+              username: username.trim() || "Guest",
+            },
+          });
 
-        if (error) {
-          console.error("Error saving data:", error.message);
-        } else if (data && data.user) {
-          currentUser.set(data.user);
+          if (error) {
+            console.error("Error saving data:", error.message);
+          } else if (data && data.user) {
+            currentUser.set(data.user);
+          }
+        } catch (err) {
+          console.error(
+            "Unexpected error:",
+            err instanceof Error ? err.message : String(err),
+          );
+        } finally {
+          loading = false;
         }
-      } catch (err) {
-        console.error(
-          "Unexpected error:",
-          err instanceof Error ? err.message : String(err),
-        );
-      } finally {
+      } else {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("ateles_guest_username", username.trim() || "Guest");
+        }
         loading = false;
       }
     }
@@ -111,9 +125,17 @@
       <button
         on:click={handleNext}
         disabled={!username.trim()}
-        class="mt-2 bg-text-primary text-bg font-semibold py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+        class="mt-2 bg-text-primary text-bg font-semibold py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer border-none"
       >
         Continue
+      </button>
+
+      <button
+        type="button"
+        on:click={handlePlayAsGuest}
+        class="text-text-secondary hover:text-text-primary transition-colors text-sm font-medium py-1 bg-transparent border-none cursor-pointer underline text-center"
+      >
+        Play as Guest
       </button>
     {:else if step === 2}
       <h1 class="text-text-primary text-xl font-bold mb-2">

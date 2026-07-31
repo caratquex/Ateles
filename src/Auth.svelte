@@ -66,13 +66,21 @@
       class="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:opacity-90 transition-opacity"
       on:click={() => (step = "auth")}
     >
-      <div class="w-48 h-48 mb-20 animate-[spin_20s_linear_infinite] flex items-center justify-center">
+      <div class="w-48 h-48 mb-16 animate-[spin_20s_linear_infinite] flex items-center justify-center">
         <AtelesLogo className="w-full h-full drop-shadow-sm text-black" />
       </div>
       <h1 class="text-text-primary text-4xl font-medium mb-4 tracking-wide">
         Welcome
       </h1>
-      <p class="text-text-secondary text-sm tracking-wider">Click to start</p>
+      <p class="text-text-secondary text-sm tracking-wider mb-8">Click to start</p>
+      
+      <button
+        type="button"
+        class="px-6 py-2.5 rounded-full bg-surface/80 hover:bg-surface border border-border text-text-primary text-sm font-medium transition-all cursor-pointer shadow-sm z-10"
+        on:click|stopPropagation={() => appState.set("onboarding")}
+      >
+        Play as Guest
+      </button>
     </div>
   {:else}
     <div
@@ -131,18 +139,34 @@
         {/if}
       </button>
 
-      <div class="text-center mt-2">
-        <span class="text-text-secondary text-sm">
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}
-        </span>
+      <div class="text-center mt-2 flex flex-col items-center gap-3 w-full">
+        <div>
+          <span class="text-text-secondary text-sm">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}
+          </span>
+          <button
+            class="text-text-primary text-sm font-medium hover:underline transition-all cursor-pointer bg-transparent border-none ml-1"
+            on:click={() => {
+              isSignUp = !isSignUp;
+              errorMsg = "";
+            }}
+          >
+            {isSignUp ? "Login" : "Sign up"}
+          </button>
+        </div>
+
+        <div class="w-full flex items-center gap-3 my-1">
+          <div class="h-[1px] bg-border/40 flex-1"></div>
+          <span class="text-xs text-text-tertiary uppercase tracking-wider">or</span>
+          <div class="h-[1px] bg-border/40 flex-1"></div>
+        </div>
+
         <button
-          class="text-text-primary text-sm font-medium hover:underline transition-all cursor-pointer bg-transparent border-none ml-1"
-          on:click={() => {
-            isSignUp = !isSignUp;
-            errorMsg = "";
-          }}
+          type="button"
+          class="text-text-secondary hover:text-text-primary text-sm font-medium transition-all cursor-pointer bg-transparent border-none underline"
+          on:click={() => appState.set("onboarding")}
         >
-          {isSignUp ? "Login" : "Sign up"}
+          Play as Guest
         </button>
       </div>
     </div>
