@@ -35,8 +35,11 @@
         password,
       });
       if (error) {
-        errorMsg = error.message;
-        alert("Login failed: " + error.message);
+        if (error.message === "Failed to fetch") {
+          errorMsg = "Network error connecting to database. Please check your connection or use 'Play as Guest'.";
+        } else {
+          errorMsg = error.message;
+        }
       } else if (data && data.user) {
         if (!data.session) {
           errorMsg = "Login unsuccessful. Please verify your email address.";
