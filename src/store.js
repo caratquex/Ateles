@@ -6,6 +6,10 @@ export const appState = writable('auth');
 // Tracks if we are viewing the onboarding flow purely as a tutorial
 export const isTutorialMode = writable(false);
 
+// Interactive live canvas onboarding: active status and current step (1: Draw, 2: Shake & Drag, 3: Create Ateles, 4: Save as journey, 0: completed)
+export const isOnboardingActive = writable(false);
+export const onboardingStep = writable(1);
+
 // Currently authenticated Supabase user
 /** @type {import('svelte/store').Writable<import('@supabase/supabase-js').User | null>} */
 export const currentUser = writable(null);

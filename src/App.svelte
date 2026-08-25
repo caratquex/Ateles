@@ -6,6 +6,7 @@
   import Gallery from "./Gallery.svelte";
   import Auth from "./Auth.svelte";
   import Onboarding from "./Onboarding.svelte";
+  import InteractiveGuide from "./InteractiveGuide.svelte";
   import {
     appState,
     activeTheme,
@@ -20,6 +21,8 @@
     journalCancelTrigger,
     saveVisualTrigger,
     isTutorialMode,
+    isOnboardingActive,
+    onboardingStep,
   } from "./store.js";
   import { supabase } from "./lib/supabase.js";
   import { onMount } from "svelte";
@@ -147,6 +150,14 @@
     isTutorialMode.set(false);
     activeEntryId.set(null);
     clearCanvasTrigger.update((v) => v + 1);
+    appState.set("home");
+    menuOpen = false;
+  }
+
+  function startTutorial() {
+    handleStartOver();
+    isOnboardingActive.set(true);
+    onboardingStep.set(1);
     appState.set("home");
     menuOpen = false;
   }
@@ -346,6 +357,10 @@
   <P5Canvas />
 
   {#if !$isFullscreenVisual}
+    <InteractiveGuide />
+  {/if}
+
+  {#if !$isFullscreenVisual}
     {#if $appState === "auth"}
       <Auth />
     {:else if $appState === "onboarding"}
@@ -397,11 +412,7 @@
           >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={() => {
-              isTutorialMode.set(true);
-              appState.set("onboarding");
-              menuOpen = false;
-            }}>Tutorial</button
+            on:click={startTutorial}>Tutorial</button
           >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
@@ -501,6 +512,7 @@
         {#if $appState === "home" && $visualPhase === "drawing" && $hasDrawing}
           <button
             class="nav-btn active"
+            class:pulse-guide={$isOnboardingActive && $onboardingStep === 1}
             on:click|stopPropagation={() => {
               visualPhase.set("ready_to_shake");
             }}
@@ -511,6 +523,7 @@
         {:else if $appState === "home" && $visualPhase === "bloom"}
           <button
             class="nav-btn active"
+            class:pulse-guide={$isOnboardingActive && $onboardingStep === 3}
             on:click|stopPropagation={() => {
               appState.set("journal_input");
             }}
@@ -583,6 +596,7 @@
 
       <button
         class="nav-icon-btn active-accent"
+        class:pulse-guide={$isOnboardingActive && $onboardingStep === 4}
         class:show={$appState === "journal_input"}
         on:click|stopPropagation={() => journalSaveTrigger.update((n) => n + 1)}
         aria-label="Done"
@@ -802,6 +816,27 @@
     }
     .bottom-row {
       gap: 6px;
+    }
+  }
+
+  :global(.pulse-guide) {
+    animation: guidePulse 1.6s infinite ease-in-out !important;
+    position: relative;
+    z-index: 105;
+  }
+
+  @keyframes guidePulse {
+    0% {
+      box-shadow: 0 0 0 0 var(--color-accent);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 12px transparent;
+      transform: scale(1.06);
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+      transform: scale(1);
     }
   }
 </style>
