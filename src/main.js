@@ -10,6 +10,8 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(registration => {
       console.log('[Service Worker] Registered with scope:', registration.scope);
+      // Check for worker updates on every page load
+      registration.update();
     }).catch(error => {
       console.error('[Service Worker] Registration failed:', error);
     });

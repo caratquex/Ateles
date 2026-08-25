@@ -1,7 +1,5 @@
-const CACHE_NAME = 'ateles-cache-v2';
+const CACHE_NAME = 'ateles-cache-v4';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.svg',
   '/Ateles_Logo.svg',
@@ -20,8 +18,10 @@ const CDN_URLS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell');
-      return cache.addAll(ASSETS_TO_CACHE);
+      console.log('[Service Worker] Caching static shell');
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+        console.warn('[Service Worker] Pre-cache warning:', err);
+      });
     })
   );
   self.skipWaiting();
@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache', key);
+            console.log('[Service Worker] Deleting stale cache:', key);
             return caches.delete(key);
           }
         })
@@ -51,8 +51,29 @@ self.addEventListener('fetch', (event) => {
 
   const url = event.request.url;
 
-  // Cache-first strategy for CDNs and static assets
-  if (CDN_URLS.some(cdn => url.startsWith(cdn)) || ASSETS_TO_CACHE.includes(new URL(url).pathname)) {
+  // 1. Navigation / Document requests: ALWAYS Network-First
+  // This ensures the browser always loads the latest index.html with new bundle hashes
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request) || caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // 2. CDNs and Hashed Static Assets: Cache-First
+  if (CDN_URLS.some(cdn => url.startsWith(cdn)) || url.includes('/assets/')) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -69,12 +90,13 @@ self.addEventListener('fetch', (event) => {
         });
       })
     );
-  } else {
-    // Network-first for everything else
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
-    );
+    return;
   }
+
+  // 3. Fallback for other requests: Network-First
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      return caches.match(event.request);
+    })
+  );
 });
