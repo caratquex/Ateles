@@ -15,6 +15,7 @@
     clearCanvasTrigger,
     currentUser,
     journalEntries,
+    journalEntriesLoading,
     isFullscreenVisual,
     hasDrawing,
     journalSaveTrigger,
@@ -54,18 +55,20 @@
     "nature",
     "candy",
   ];
-  let entriesLoading = false;
-
   async function fetchJournalEntries() {
-    entriesLoading = true;
+    if (!$currentUser) return;
+    journalEntriesLoading.set(true);
     try {
       const { data, error } = await supabase
         .from("journal_entries")
-        .select("*")
-        .order("id", { ascending: true });
+        .select("id, title, content, created_at, visual_data")
+        .eq("user_id", $currentUser.id)
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching journal entries:", error.message);
+        const cached = localStorage.getItem(`ateles_journal_cache_${$currentUser.id}`);
+        if (cached) journalEntries.set(JSON.parse(cached));
       } else if (data) {
         const mappedEntries = data.map((item) => ({
           id: item.id,
@@ -80,11 +83,15 @@
           atelesData: item.visual_data,
         }));
         journalEntries.set(mappedEntries);
+        localStorage.setItem(
+          `ateles_journal_cache_${$currentUser.id}`,
+          JSON.stringify(mappedEntries),
+        );
       }
     } catch (e) {
       console.error("Unexpected error fetching entries:", e);
     } finally {
-      entriesLoading = false;
+      journalEntriesLoading.set(false);
     }
   }
 
@@ -95,6 +102,7 @@
   } else if (!$currentUser && lastUserId !== null) {
     lastUserId = null;
     journalEntries.set([]);
+    journalEntriesLoading.set(false);
   }
 
   onMount(async () => {

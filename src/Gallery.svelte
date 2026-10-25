@@ -1,6 +1,5 @@
 <script>
   import { onMount } from "svelte";
-  import { supabase } from "./lib/supabase.js";
   import {
     journalEntries,
     activeEntryId,
@@ -8,55 +7,16 @@
     clearCanvasTrigger,
     journalLayout,
     currentUser,
+    journalEntriesLoading,
   } from "./store.js";
 
-  let isLoading = true;
-
-  onMount(async () => {
-    isLoading = true;
-    if (!$currentUser) {
-      isLoading = false;
-      return;
+  onMount(() => {
+    if ($currentUser || $journalEntries.length > 0) return;
+    try {
+      journalEntries.set(JSON.parse(localStorage.getItem("ateles_guest_journal_entries") || "[]"));
+    } catch (error) {
+      console.error("Error loading guest journal entries:", error);
     }
-    const { data, error } = await supabase
-      .from("journal_entries")
-      .select("*")
-      .order("id", { ascending: false });
-
-    if (error) {
-      console.error("Gallery fetch error:", error);
-      // Offline fallback: load from local cache
-      const cached = localStorage.getItem("ateles_journal_cache");
-      if (cached) {
-        try {
-          journalEntries.set(JSON.parse(cached));
-        } catch (e) {
-          console.error("Error parsing cached entries:", e);
-        }
-      } else {
-        alert("Error fetching gallery: " + error.message);
-      }
-    } else if (data) {
-      const mappedEntries = data.map((item) => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        created_at: item.created_at,
-        date: new Date(item.created_at).toLocaleDateString("en-US", {
-          weekday: "short",
-          month: "long",
-          day: "numeric",
-        }),
-        atelesData: item.visual_data,
-      }));
-      journalEntries.set(mappedEntries);
-      try {
-        localStorage.setItem("ateles_journal_cache", JSON.stringify(mappedEntries));
-      } catch (e) {
-        console.error("Error saving journal cache:", e);
-      }
-    }
-    isLoading = false;
   });
 
   /** @param {string|number} id */
@@ -114,7 +74,7 @@
 <div
   class="absolute top-0 left-0 w-full h-full bg-bg overflow-y-auto pt-[100px] pb-32 z-[25] animate-[fadeIn_0.5s_ease]"
 >
-  {#if isLoading}
+  {#if $journalEntriesLoading}
     <div
       class="grid grid-cols-2 sm:grid-cols-3 gap-y-10 gap-x-4 px-4 sm:px-6 max-w-[500px] mx-auto mt-8"
     >

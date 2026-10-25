@@ -123,14 +123,25 @@
   }
 
   let showBrushSettings = false;
+  let showAdvancedOptions = false;
+
+  function closeBrushSettings() {
+    showBrushSettings = false;
+    showAdvancedOptions = false;
+  }
+
+  function toggleBrushSettings() {
+    showBrushSettings = !showBrushSettings;
+    if (!showBrushSettings) showAdvancedOptions = false;
+  }
 
   function doneDrawing() {
-    showBrushSettings = false;
+    closeBrushSettings();
     visualPhase.set("ready_to_shake");
   }
 
   function startNewAteles() {
-    showBrushSettings = false;
+    closeBrushSettings();
     activeEntryId.set(null);
     clearCanvasTrigger.update((v) => v + 1);
     journalLayout.set(2);
@@ -187,7 +198,7 @@
       <div class="drawing-controls-wrapper">
         {#if showBrushSettings}
           <div
-            class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards] mb-3 max-h-[65vh] overflow-y-auto"
+            class="glass-panel pointer-events-auto p-4 flex flex-col gap-4 w-full max-w-[340px] shadow-lg animate-[slideUp_0.25s_cubic-bezier(0.16,1,0.3,1)_forwards] mb-3 {showAdvancedOptions ? 'max-h-[65vh] overflow-y-auto' : ''}"
           >
             <!-- Header -->
             <div
@@ -200,7 +211,7 @@
               <button
                 aria-label="Close settings"
                 class="bg-transparent border-none text-text-secondary hover:text-text-primary cursor-pointer p-1 flex items-center justify-center rounded-circle hover:bg-surface transition-colors"
-                on:click={() => (showBrushSettings = false)}
+                on:click={closeBrushSettings}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -223,13 +234,14 @@
             <div class="flex flex-col gap-1.5 text-left">
               <span
                 class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-                >Palette</span
+                >Colour</span
               >
               <div
                 class="flex items-center justify-between bg-surface/30 rounded-pill px-3 py-1 border border-border"
               >
                 <button
-                  class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
+                  aria-label="Previous palette"
+                  class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-3 -ml-2 hover:opacity-75"
                   on:click={prevBrushPalette}
                 >
                   &lt;
@@ -239,7 +251,8 @@
                   >{activePalette.name}</span
                 >
                 <button
-                  class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-1 hover:opacity-75"
+                  aria-label="Next palette"
+                  class="bg-transparent border-none text-[1rem] cursor-pointer text-text-primary p-3 -mr-2 hover:opacity-75"
                   on:click={nextBrushPalette}
                 >
                   &gt;
@@ -253,8 +266,10 @@
                 class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
                 >Stroke Type</span
               >
-              <div class="grid grid-cols-3 gap-2">
+              <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Mark">
                 <button
+                  role="radio"
+                  aria-checked={$strokeType === 'ellipse'}
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
                   'ellipse'
                     ? 'bg-accent text-text-inverse'
@@ -264,6 +279,8 @@
                   Round
                 </button>
                 <button
+                  role="radio"
+                  aria-checked={$strokeType === 'rect'}
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
                   'rect'
                     ? 'bg-accent text-text-inverse'
@@ -273,6 +290,8 @@
                   Square
                 </button>
                 <button
+                  role="radio"
+                  aria-checked={$strokeType === 'line'}
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
                   'line'
                     ? 'bg-accent text-text-inverse'
@@ -282,6 +301,8 @@
                   Line
                 </button>
                 <button
+                  role="radio"
+                  aria-checked={$strokeType === 'stamp_asterisk'}
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
                   'stamp_asterisk'
                     ? 'bg-accent text-text-inverse'
@@ -291,6 +312,8 @@
                   Asterisk (*)
                 </button>
                 <button
+                  role="radio"
+                  aria-checked={$strokeType === 'stamp_plus'}
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
                   'stamp_plus'
                     ? 'bg-accent text-text-inverse'
@@ -300,6 +323,8 @@
                   Plus (+)
                 </button>
                 <button
+                  role="radio"
+                  aria-checked={$strokeType === 'stamp_char'}
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$strokeType ===
                   'stamp_char'
                     ? 'bg-accent text-text-inverse'
@@ -322,12 +347,42 @@
               {/if}
             </div>
 
+            <!-- Essential thickness control -->
+            <div class="flex flex-col gap-2 text-left">
+              <div class="flex justify-between items-center">
+                <span class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider">Thickness</span>
+                <span class="text-[0.75rem] font-medium text-text-secondary">{Math.round($strokeSize * 100)}%</span>
+              </div>
+              <input
+                aria-label="Brush thickness"
+                type="range"
+                min="0.2"
+                max="3.0"
+                step="0.1"
+                bind:value={$strokeSize}
+                class="pointer-events-auto w-full accent-accent h-3 rounded-pill appearance-none cursor-pointer"
+              />
+              <div class="flex justify-between text-[0.7rem] text-text-tertiary"><span>Fine</span><span>Bold</span></div>
+            </div>
+
+            <button
+              type="button"
+              aria-expanded={showAdvancedOptions}
+              class="more-options-toggle"
+              on:click={() => (showAdvancedOptions = !showAdvancedOptions)}
+            >
+              <span>More options</span>
+              <span aria-hidden="true">{showAdvancedOptions ? '−' : '+'}</span>
+            </button>
+
+            {#if showAdvancedOptions}
             <!-- Shake Mode Selection -->
             <div class="flex flex-col gap-1.5 text-left">
               <span
                 class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-                >Shake Mode</span
+                >After you shake</span
               >
+              <span class="text-[0.75rem] text-text-secondary">Choose how your marks reform.</span>
               <div class="grid grid-cols-3 gap-2">
                 <button
                   class="pointer-events-auto py-1.5 px-2 border border-accent rounded-pill text-[0.75rem] font-medium cursor-pointer transition-all duration-normal ease-default hover:opacity-80 {$shakeMode ===
@@ -451,27 +506,6 @@
               </div>
             </div>
 
-            <!-- Brush Size Slider -->
-            <div class="flex flex-col gap-1.5 text-left">
-              <div class="flex justify-between items-center">
-                <span
-                  class="text-[0.75rem] font-semibold text-text-tertiary uppercase tracking-wider"
-                  >Size</span
-                >
-                <span class="text-[0.75rem] font-medium text-text-secondary"
-                  >{Math.round($strokeSize * 100)}%</span
-                >
-              </div>
-              <input
-                type="range"
-                min="0.2"
-                max="3.0"
-                step="0.1"
-                bind:value={$strokeSize}
-                class="pointer-events-auto w-full accent-accent bg-surface/50 h-1.5 rounded-pill appearance-none cursor-pointer"
-              />
-            </div>
-
             <!-- Brush Opacity Slider -->
             <div class="flex flex-col gap-1.5 text-left">
               <div class="flex justify-between items-center">
@@ -484,14 +518,16 @@
                 >
               </div>
               <input
+                aria-label="Brush opacity"
                 type="range"
                 min="0.1"
                 max="1.0"
                 step="0.05"
                 bind:value={$strokeOpacity}
-                class="pointer-events-auto w-full accent-accent bg-surface/50 h-1.5 rounded-pill appearance-none cursor-pointer"
+                class="pointer-events-auto w-full accent-accent h-3 rounded-pill appearance-none cursor-pointer"
               />
             </div>
+            {/if}
           </div>
         {/if}
 
@@ -505,7 +541,7 @@
             class="bg-transparent border-none text-[1.2rem] cursor-pointer text-text-primary p-1.5 flex items-center justify-center rounded-circle hover:bg-surface-hover transition-colors {showBrushSettings
               ? 'text-accent bg-surface-hover scale-110'
               : ''}"
-            on:click={() => (showBrushSettings = !showBrushSettings)}
+            on:click={toggleBrushSettings}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -662,6 +698,29 @@
     -webkit-backdrop-filter: var(--blur-glass);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
+  }
+
+  .more-options-toggle {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-body-sm);
+    font-weight: var(--weight-medium);
+  }
+
+  .more-options-toggle:hover,
+  .more-options-toggle:focus-visible {
+    background: var(--color-surface);
+    outline: none;
   }
 
   .drawing-controls-wrapper {

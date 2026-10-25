@@ -45,6 +45,7 @@ export const shakeMode = writable('chaos');
 // Journal entries
 /** @type {import('svelte/store').Writable<any[]>} */
 export const journalEntries = writable([]);
+export const journalEntriesLoading = writable(false);
 
 // Currently viewed journal entry ID (null means viewing live/new)
 /** @type {import('svelte/store').Writable<number | string | null>} */
