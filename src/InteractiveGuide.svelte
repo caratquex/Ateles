@@ -89,11 +89,6 @@
             ></span>
             Step {$onboardingStep} of 4
           </span>
-          <span class="text-xs font-medium text-text-tertiary">
-            {#if $onboardingStep === 1}Draw{:else if $onboardingStep === 2}Shake
-              & Drag{:else if $onboardingStep === 3}Create Ateles{:else if $onboardingStep === 4}Save
-              Journey{/if}
-          </span>
         </div>
 
         <button
@@ -116,7 +111,7 @@
           </div>
           <div class="flex flex-col flex-1">
             <h2 class="text-sm font-bold text-text-primary m-0">
-              1. Draw freely
+              Draw freely
             </h2>
             <p class="text-xs text-text-secondary m-0 mt-0.5">
               {#if !$hasDrawing}
@@ -137,7 +132,7 @@
           </div>
           <div class="flex flex-col flex-1">
             <h2 class="text-sm font-bold text-text-primary m-0">
-              2. Shake & Drag
+              Shake & Drag
             </h2>
             <p class="text-xs text-text-secondary m-0 mt-0.5">
               {#if $visualPhase === "breaking"}
@@ -158,7 +153,7 @@
           <div class="flex items-center justify-between flex-1 gap-2">
             <div class="flex flex-col">
               <h2 class="text-sm font-bold text-text-primary m-0">
-                3. Ateles Created
+                Ateles Created
               </h2>
               <p class="text-xs text-text-secondary m-0 mt-0.5">
                 Tap <strong class="text-text-primary">Journal</strong> below to save.
@@ -182,7 +177,7 @@
           </div>
           <div class="flex flex-col flex-1">
             <h2 class="text-sm font-bold text-text-primary m-0">
-              4. Save Journey
+              Save Journey
             </h2>
             <p class="text-xs text-text-secondary m-0 mt-0.5">
               Write a reflection and tap <strong class="text-text-primary"
