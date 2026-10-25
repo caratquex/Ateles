@@ -39,6 +39,11 @@
     Trash2,
     Download,
     Plus,
+    House,
+    Menu,
+    Palette,
+    LogOut,
+    LogIn,
   } from "lucide-svelte";
 
   let menuOpen = false;
@@ -388,66 +393,70 @@
     <div class="absolute top-6 right-6 z-[100]">
       <button
         aria-label="Toggle Menu"
+        aria-expanded={menuOpen}
+        aria-controls="app-navigation"
         class="bg-transparent border-none text-text-primary cursor-pointer p-2 flex"
         on:click={() => (menuOpen = !menuOpen)}
       >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
+        <Menu size={24} aria-hidden="true" />
       </button>
       {#if menuOpen}
         <div
-          class="absolute top-full right-0 mt-2 bg-bg border border-border-default rounded-md shadow-md flex flex-col min-w-[150px] overflow-hidden"
+          id="app-navigation"
+          class="app-navigation absolute top-full right-0 mt-2 bg-bg border border-border-default rounded-md shadow-md flex flex-col min-w-[220px] overflow-hidden"
         >
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={goHome}>Home</button
-          >
+            on:click={goHome}>
+            <House size={18} aria-hidden="true" />
+            <span>Home</span>
+          </button>
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={goGallery}>Gallery</button
-          >
+            on:click={goGallery}>
+            <LayoutGrid size={18} aria-hidden="true" />
+            <span>Gallery</span>
+          </button>
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={startTutorial}>Tutorial</button
-          >
+            on:click={startTutorial}>
+            <BookOpen size={18} aria-hidden="true" />
+            <span>Tutorial</span>
+          </button>
           <button
             class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-            on:click={cycleTheme}>Theme: {capitalize($activeTheme)}</button
-          >
+            on:click={cycleTheme}>
+            <Palette size={18} aria-hidden="true" />
+            <span>Theme: {capitalize($activeTheme)}</span>
+          </button>
           {#if $appState === "home"}
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
               on:click={() => {
                 saveVisualTrigger.update((n) => n + 1);
                 menuOpen = false;
-              }}>Download Drawing</button
-            >
+              }}>
+              <Download size={18} aria-hidden="true" />
+              <span>Download Drawing</span>
+            </button>
           {/if}
           {#if $currentUser}
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-red-500 text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
-              on:click={handleLogout}>Log Out</button
-            >
+              on:click={handleLogout}>
+              <LogOut size={18} aria-hidden="true" />
+              <span>Log Out</span>
+            </button>
           {:else}
             <button
               class="bg-transparent border-b border-border-default hover:bg-surface text-left text-text-primary text-[1rem] font-medium p-3 px-4 cursor-pointer last:border-b-0"
               on:click={() => {
                 appState.set("auth");
                 menuOpen = false;
-              }}>Log In / Sign Up</button
-            >
+              }}>
+              <LogIn size={18} aria-hidden="true" />
+              <span>Log In / Sign Up</span>
+            </button>
           {/if}
         </div>
       {/if}
@@ -616,6 +625,26 @@
 </main>
 
 <style>
+  .app-navigation {
+    max-width: calc(100vw - 48px);
+  }
+
+  .app-navigation > button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+  }
+
+  .app-navigation > button :global(svg) {
+    flex-shrink: 0;
+  }
+
+  .app-navigation > button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -4px;
+  }
+
   .bottom-row {
     position: fixed;
     bottom: 24px;
